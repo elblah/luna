@@ -310,6 +310,9 @@ function AICoder:run_non_interactive()
         log.debug("*** run_non_interactive called")
     end
 
+    -- Auto-enable YOLO mode since no tty for approval prompts
+    config.set_yolo_mode(true)
+
     local stdin_utils = require("utils.stdin_utils")
     local user_input = stdin_utils.read_stdin_as_string()
     if not user_input or user_input == "" then

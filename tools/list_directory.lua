@@ -13,19 +13,33 @@ function M.validate_arguments(args)
     if not args.max_depth or args.max_depth < 1 then
         args.max_depth = 1
     end
+    if not args.type or not (args.type == "file" or args.type == "dir" or args.type == "all") then
+        args.type = "all"
+    end
 end
 
 function M.format_arguments(args)
     local path = args.path or "."
     local pattern = args.pattern
     local depth = args.max_depth or 1
-    if pattern then
-        return ("Listing '%s' matching: %s (depth %d)"):format(path, pattern, depth)
-    end
+    local list_type = args.type or "all"
+    
+    local parts = {}
     if path and path ~= "." then
-        return ("Listing directory: %s (depth %d)"):format(path, depth)
+        table.insert(parts, ("Listing directory: %s (depth %d)"):format(path, depth))
+    elseif depth > 1 then
+        table.insert(parts, ("Listing current dir (depth %d)"):format(depth))
     end
-    return depth > 1 and ("Listing current dir (depth %d)"):format(depth) or ""
+    
+    if pattern then
+        table.insert(parts, ("matching: %s"):format(pattern))
+    end
+    
+    if list_type ~= "all" then
+        table.insert(parts, ("type: %s"):format(list_type))
+    end
+    
+    return table.concat(parts, ", ")
 end
 
 local function check_sandbox(path)
@@ -52,6 +66,7 @@ function M.execute(args)
     local path = args.path or "."
     local pattern = args.pattern
     local max_depth = args.max_depth or 1
+    local list_type = args.type or "all"
     
     -- Resolve path
     local h = io.popen("realpath '" .. path:gsub("'", "'\\''") .. "'")
@@ -88,10 +103,18 @@ function M.execute(args)
     
     local files = {}
     
+    -- Build find command based on type filter
+    local find_type = ""
+    if list_type == "file" then
+        find_type = " -type f"
+    elseif list_type == "dir" then
+        find_type = " -type d"
+    end
+    
     if pattern then
-        -- Use find for pattern matching
-        local cmd = ("find %s -maxdepth %d -type f -name '%s' 2>/dev/null"):format(
-            resolved_path, max_depth, pattern
+        -- Use find for pattern matching (files and/or directories)
+        local cmd = ("find %s -maxdepth %d%s -name '%s' 2>/dev/null"):format(
+            resolved_path, max_depth, find_type, pattern
         )
         h = io.popen(cmd)
         for line in h:lines() do
@@ -102,36 +125,41 @@ function M.execute(args)
         end
         h:close()
     else
-        -- No pattern - use find for listing
+        -- No pattern - use find for listing (files and/or directories)
         -- Build ignore paths manually since --exclude doesn't work on all find versions
         local ignore_set = {}
         for _, dir in ipairs(ignore_dirs) do
             ignore_set[dir] = true
         end
         
-        local cmd = ("find %s -maxdepth %d -type f 2>/dev/null"):format(resolved_path, max_depth)
+        local cmd = ("find %s -maxdepth %d%s 2>/dev/null"):format(resolved_path, max_depth, find_type)
         h = io.popen(cmd)
         for line in h:lines() do
-            -- Filter by ignore patterns (filename only)
-            local filename = line:match("([^/]+)$") or ""
-            local skip = false
-            for _, p in ipairs(ignore_patterns) do
-                if filename:match("%" .. p .. "$") then
-                    skip = true
-                    break
-                end
-            end
-            -- Filter by ignore dirs (any path component)
-            if not skip then
-                for part in line:gmatch("([^/]+)") do
-                    if ignore_set[part] then
+            -- Skip the root directory itself
+            if line == resolved_path then
+                -- skip
+            else
+                -- Filter by ignore patterns (filename only)
+                local filename = line:match("([^/]+)$") or ""
+                local skip = false
+                for _, p in ipairs(ignore_patterns) do
+                    if filename:match("%" .. p .. "$") then
                         skip = true
                         break
                     end
                 end
-            end
-            if not skip then
-                table.insert(files, line)
+                -- Filter by ignore dirs (any path component)
+                if not skip then
+                    for part in line:gmatch("([^/]+)") do
+                        if ignore_set[part] then
+                            skip = true
+                            break
+                        end
+                    end
+                end
+                if not skip then
+                    table.insert(files, line)
+                end
             end
             if #files >= MAX_FILES + 1 then
                 break
@@ -148,7 +176,7 @@ function M.execute(args)
     
     if #limited == 0 then
         local msg = pattern 
-            and ("No files matching '%s' in '%s'"):format(pattern, resolved_path)
+            and ("No items matching '%s' in '%s'"):format(pattern, resolved_path)
             or  ("Directory is empty: '%s'"):format(resolved_path)
         return {
             tool = "list_directory",
@@ -157,17 +185,17 @@ function M.execute(args)
         }
     elseif actual_count > MAX_FILES then
         local msg = pattern
-            and ("Found %d+ files matching '%s' in '%s'"):format(MAX_FILES, pattern, resolved_path)
-            or  ("Found %d+ files in '%s'"):format(MAX_FILES, resolved_path)
+            and ("Found %d+ items matching '%s' in '%s'"):format(MAX_FILES, pattern, resolved_path)
+            or  ("Found %d+ items in '%s'"):format(MAX_FILES, resolved_path)
         return {
             tool = "list_directory",
             friendly = msg,
-            detailed = ("Showing first %d files:\n\n%s"):format(MAX_FILES, table.concat(limited, "\n"))
+            detailed = ("Showing first %d items:\n\n%s"):format(MAX_FILES, table.concat(limited, "\n"))
         }
     else
         local msg = pattern
-            and ("✓ Found %d files matching '%s' in '%s'"):format(actual_count, pattern, resolved_path)
-            or  ("✓ Found %d files in '%s'"):format(actual_count, resolved_path)
+            and ("✓ Found %d items matching '%s' in '%s'"):format(actual_count, pattern, resolved_path)
+            or  ("✓ Found %d items in '%s'"):format(actual_count, resolved_path)
         return {
             tool = "list_directory",
             friendly = msg,
@@ -181,7 +209,7 @@ M.TOOL_DEFINITION = {
     type = "internal",
     auto_approved = true,
     approval_excludes_arguments = false,
-    description = "Lists files in a directory, optionally matching a pattern.",
+    description = "Lists files and directories in a directory, optionally matching a pattern.",
     parameters = {
         type = "object",
         properties = {
@@ -198,6 +226,12 @@ M.TOOL_DEFINITION = {
                 type = "integer",
                 description = "Maximum directory depth to list (default: 1 = current level only).",
                 default = 1
+            },
+            type = {
+                type = "string",
+                description = "Filter by type: 'file', 'dir', or 'all' (default: all).",
+                enum = {"file", "dir", "all"},
+                default = "all"
             },
         },
     },

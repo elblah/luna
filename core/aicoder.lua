@@ -5,6 +5,7 @@ local config = require("core.config")
 local Stats = require("core.stats")
 local MessageHistory = require("core.message_history")
 local ToolManager = require("core.tool_manager")
+local stdin_utils = require("utils.stdin_utils")
 
 -- Provider selection based on API_FORMAT or endpoint detection
 local function select_api_client()
@@ -160,6 +161,12 @@ function AICoder:initialize_system_prompt()
 end
 
 function AICoder:run()
+    -- Check if non-interactive (piped input)
+    if not stdin_utils.is_stdin_tty() then
+        self:run_non_interactive()
+        return
+    end
+    
     -- Print configuration info (like v3)
     self.config = require("core.config")
     self.config.print_startup_info()
@@ -310,12 +317,19 @@ function AICoder:run_non_interactive()
         return
     end
 
-    for _, line in ipairs({user_input:gmatch("[^\n]+")}) do
+    for line in user_input:gmatch("[^\n]+") do
         line = line:gsub("^%s+", ""):gsub("%s+$", "")
         if line ~= "" then
             self:add_user_input(line)
         end
     end
+
+    -- Process with AI
+    if #self.message_history.messages > 1 then  -- system msg + user msgs
+        self.session_manager:process_with_ai()
+    end
+    
+    self:shutdown()
 end
 
 -- Run in socket-only mode (no readline, only socket commands)

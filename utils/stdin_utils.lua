@@ -3,9 +3,24 @@
 
 local M = {}
 
+-- Use FFI to call C isatty() for reliable TTY detection
+local ffi = nil
+local function is_stdin_tty()
+    if ffi == nil then
+        pcall(function()
+            ffi = require("ffi")
+            ffi.cdef("int isatty(int fd);")
+        end)
+    end
+    if ffi then
+        return ffi.C.isatty(0) == 1
+    end
+    -- Fallback: assume TTY if FFI not available
+    return true
+end
+M.is_stdin_tty = is_stdin_tty
+
 function M.read_stdin_as_string()
-    -- In Lua, we can't easily check if stdin is a tty
-    -- We read by attempting to read from stdin
     local handle = io.stdin
     if handle then
         local content = handle:read("*a")
@@ -17,15 +32,7 @@ function M.read_stdin_as_string()
 end
 
 function M.is_stdin_piped()
-    -- Heuristic: if we can seek, it's not a pipe
-    local handle = io.stdin
-    if handle then
-        local pos, err = handle:seek()
-        if err then
-            return true  -- seek failed, likely a pipe
-        end
-    end
-    return false
+    return not is_stdin_tty()
 end
 
 return M

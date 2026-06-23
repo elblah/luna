@@ -53,6 +53,11 @@ echo "  Installing luafilesystem..."
 luarocks install --tree "$LUAROCKS_TREE" luafilesystem 2>/dev/null || \
 echo "  Warning: lfs install failed, will use bash fallback"
 
+# luasocket
+echo "  Installing luasocket..."
+luarocks install --tree "$LUAROCKS_TREE" luasocket 2>/dev/null || \
+echo "  Warning: luasocket install failed, will use shell fallback"
+
 # Setup LUA_PATH in .bashrc
 echo "[4/4] Configuring .bashrc..."
 

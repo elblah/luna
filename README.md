@@ -9,10 +9,11 @@ Pure Lua implementation of aicoder using LuaJIT + FFI.
 
 ### Optional (for performance)
 ```bash
-sudo apt install lua-cjson lua-filesystem
+sudo apt install lua-cjson lua-filesystem lua-socket
 ```
 - `lua-cjson` - Fast C-based JSON (falls back to built-in dkjson)
 - `lua-filesystem` - Native filesystem ops (falls back to bash)
+- `lua-socket` - Fast date/network ops (falls back to shell commands)
 
 ## Libraries used
 

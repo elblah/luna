@@ -3,6 +3,17 @@
 
 local M = {}
 
+function M.expand(path)
+    if not path then return path end
+    if path:sub(1, 1) == "~" then
+        local home = os.getenv("HOME")
+        if home then
+            return home .. path:sub(2)
+        end
+    end
+    return path
+end
+
 function M.is_safe_path(path)
     if not path then
         return true

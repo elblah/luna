@@ -4,6 +4,7 @@ local M = {}
 
 local config = require("core.config")
 local file_access_tracker = require("core.file_access_tracker")
+local path_utils = require("utils.path_utils")
 
 local DEFAULT_READ_LIMIT = 150
 local MAX_LINE_LENGTH = 2000
@@ -37,7 +38,7 @@ function M._check_sandbox(path, print_message)
 end
 
 function M.execute(args)
-    local path = args.path
+    local path = path_utils.expand(args.path)
     local offset = args.offset or 0
     local limit = args.limit or DEFAULT_READ_LIMIT
     

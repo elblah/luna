@@ -6,6 +6,7 @@ local config = require("core.config")
 local file_access_tracker = require("core.file_access_tracker")
 local utils = require("core.utils")
 local exec_utils = require("utils.exec_utils")
+local path_utils = require("utils.path_utils")
 
 _plugin_system = nil
 
@@ -88,7 +89,7 @@ local function find_occurrences(content, old_string)
 end
 
 function M.execute(args)
-    local path = args.path
+    local path = path_utils.expand(args.path)
     local old_string = args.old_string
     local new_string = args.new_string or ""
     

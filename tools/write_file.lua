@@ -5,6 +5,7 @@ local M = {}
 local config = require("core.config")
 local file_access_tracker = require("core.file_access_tracker")
 local exec_utils = require("utils.exec_utils")
+local path_utils = require("utils.path_utils")
 
 _plugin_system = nil
 
@@ -41,7 +42,7 @@ local function check_sandbox(path)
 end
 
 function M.execute(args)
-    local path = args.path
+    local path = path_utils.expand(args.path)
     local content = args.content or ""
     
     if not path then

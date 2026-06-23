@@ -3,6 +3,7 @@
 local M = {}
 
 local config = require("core.config")
+local path_utils = require("utils.path_utils")
 
 local DEFAULT_MAX_RESULTS = 100
 local MAX_DETAILED_LINES = 50   -- Truncate detailed output by lines
@@ -96,7 +97,7 @@ end
 
 function M.execute(args)
     local text = args.text
-    local path = args.path or "."
+    local path = path_utils.expand(args.path) or "."
     local max_results = args.max_results or DEFAULT_MAX_RESULTS
     local context = args.context or 2
     

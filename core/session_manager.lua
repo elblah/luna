@@ -262,7 +262,7 @@ function SessionManager:_handle_post_tool_processing(has_tool_calls, status)
         elseif status == "validation_error" then
             self:process_with_ai()
         end
-        -- status == "empty_response": done
+        -- status == "empty_response": done (plugin hook set next_prompt if needed)
     end
 end
 

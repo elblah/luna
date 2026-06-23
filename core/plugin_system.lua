@@ -296,14 +296,18 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
             return
         end
         
+        local results = {}
         for _, handler in ipairs(self.hooks[event_name]) do
-            local ok, err = pcall(function()
-                handler(arg1, arg2, arg3, arg4, arg5)
+            local ok, result = pcall(function()
+                return handler(arg1, arg2, arg3, arg4, arg5)
             end)
             if not ok then
-                log.error("Hook " .. event_name .. " failed: " .. tostring(err))
+                log.error("Hook " .. event_name .. " failed: " .. tostring(result))
+            elseif result ~= nil then
+                table.insert(results, result)
             end
         end
+        return results
     end
     
     function self:call_hooks_with_return(event_name, value, extra)

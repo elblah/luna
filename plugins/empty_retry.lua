@@ -148,11 +148,11 @@ end
 -- Hook handler for after_ai_processing
 local function handle_after_ai_processing()
     if not is_enabled() then
-        return nil
+        return
     end
     
     if not _app or not _app.message_history then
-        return nil
+        return
     end
     
     -- Check last assistant message
@@ -179,7 +179,7 @@ local function handle_after_ai_processing()
     -- If there's actual content, not empty - reset counter
     if last_content and last_content:match("%S") then
         reset_retry()
-        return nil
+        return
     end
     
     -- Check if AI made tool calls or has reasoning - if so, NOT empty
@@ -191,14 +191,14 @@ local function handle_after_ai_processing()
             if msg.tool_calls and #msg.tool_calls > 0 then
                 -- AI made tool calls, not empty
                 reset_retry()
-                return nil
+                return
             end
             -- Check reasoning fields (thinking, reasoning_content, reasoning)
             for _, field in ipairs({"thinking", "reasoning_content", "reasoning"}) do
                 if msg[field] and msg[field] ~= "" then
                     -- AI has reasoning, not empty
                     reset_retry()
-                    return nil
+                    return
                 end
             end
             break
@@ -215,7 +215,8 @@ local function handle_after_ai_processing()
     -- Blocking sleep
     os.execute("sleep " .. delay)
     
-    return get_message()
+    -- Set next prompt directly - no return needed
+    _app:set_next_prompt(get_message())
 end
 
 function M:create_plugin(ctx)

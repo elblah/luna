@@ -5,6 +5,7 @@ local BaseCommand = require("core.commands.base")
 local CommandResult = BaseCommand.CommandResult
 local log = require("utils.log")
 local config = require("core.config")
+local bool_utils = require("utils.bool_utils")
 
 local YoloCommand = setmetatable({}, BaseCommand.BaseCommand)
 YoloCommand.__index = YoloCommand
@@ -51,24 +52,32 @@ function YoloCommand:execute(args)
     end
 
     local action = args[1]:lower()
-    if action == "on" or action == "1" then
-        if config.yolo_mode() then
-            log.warn("YOLO mode is already enabled")
+    if action == "toggle" then
+        local now = not config.yolo_mode()
+        config.set_yolo_mode(now)
+        if now then
+            log.success("YOLO mode ENABLED")
         else
-            config.set_yolo_mode(true)
-            log.success("YOLO mode ENABLED - All tool actions will auto-approve")
-            log.warn("[!] This includes potentially dangerous shell commands")
-        end
-    elseif action == "off" or action == "0" then
-        if config.yolo_mode() then
-            config.set_yolo_mode(false)
-            log.error("YOLO mode DISABLED - Tool actions require approval")
-            log.info("Safe mode restored")
-        else
-            log.error("YOLO mode is already disabled")
+            log.error("YOLO mode DISABLED")
         end
     else
-        log.error("Invalid argument. Use: /yolo [on|off]")
+        local value = bool_utils.parse_bool(action)
+        if value == nil then
+            log.error("Invalid argument. Use: /yolo [on|off|toggle]")
+            return CommandResult.new(false, false)
+        end
+        if value == config.yolo_mode() then
+            log.warn("YOLO mode is already " .. (value and "enabled" or "disabled"))
+        else
+            config.set_yolo_mode(value)
+            if value then
+                log.success("YOLO mode ENABLED - All tool actions will auto-approve")
+                log.warn("[!] This includes potentially dangerous shell commands")
+            else
+                log.error("YOLO mode DISABLED - Tool actions require approval")
+                log.info("Safe mode restored")
+            end
+        end
     end
 
     return CommandResult.new(false, false)

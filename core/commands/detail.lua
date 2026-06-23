@@ -5,6 +5,7 @@ local BaseCommand = require("core.commands.base")
 local CommandResult = BaseCommand.CommandResult
 local log = require("utils.log")
 local config = require("core.config")
+local bool_utils = require("utils.bool_utils")
 
 local DetailCommand = setmetatable({}, BaseCommand.BaseCommand)
 DetailCommand.__index = DetailCommand
@@ -45,22 +46,30 @@ function DetailCommand:execute(args)
     end
 
     local action = args[1]:lower()
-    if action == "on" or action == "1" or action == "enable" or action == "true" then
-        if config.detail_mode() then
-            log.warn("[*] Detail mode is already enabled")
-        else
-            config.set_detail_mode(true)
+    if action == "toggle" then
+        local now = not config.detail_mode()
+        config.set_detail_mode(now)
+        if now then
             log.success("[*] Detail mode ENABLED")
-        end
-    elseif action == "off" or action == "0" or action == "disable" or action == "false" then
-        if config.detail_mode() then
-            config.set_detail_mode(false)
-            log.warn("[*] Detail mode DISABLED")
         else
-            log.warn("[*] Detail mode is already disabled")
+            log.warn("[*] Detail mode DISABLED")
         end
     else
-        log.error("Unknown action: " .. action .. " (use on/off)")
+        local value = bool_utils.parse_bool(action)
+        if value == nil then
+            log.error("Unknown action: " .. action .. " (use on/off/toggle)")
+            return CommandResult.new(false, false)
+        end
+        if value == config.detail_mode() then
+            log.warn("[*] Detail mode is already " .. (value and "enabled" or "disabled"))
+        else
+            config.set_detail_mode(value)
+            if value then
+                log.success("[*] Detail mode ENABLED")
+            else
+                log.warn("[*] Detail mode DISABLED")
+            end
+        end
     end
 
     return CommandResult.new(false, false)

@@ -313,11 +313,26 @@ function M.new(stats)
             
             log.warn("[*] Compacting conversation (" .. context_before .. " tokens)...")
             local new_msgs = svc:compact(this.messages)
+            
+            -- Safety: estimate context of new messages before applying
+            local old_messages = this.messages
             this.messages = new_msgs
             this:remove_orphan_tool_results()
             this:estimate_context()
+            local context_after = this._context_size
+            
+            -- Safety: if compaction didn't reduce to at least half, abort
+            local min_reduction = context_before / 2
+            if context_after >= min_reduction then
+                log.error("[X] Compaction ineffective: " .. context_before .. " -> " .. context_after .. " tokens (need < " .. math.floor(min_reduction) .. "). Aborting compaction.")
+                this.messages = old_messages
+                this:estimate_context()
+                this.is_compacting = false
+                return
+            end
+            
             this:increment_compaction_count()
-            log.success("Conversation compacted successfully")
+            log.success("Conversation compacted: " .. context_before .. " -> " .. context_after .. " tokens")
         end)
         this.is_compacting = false
         if not ok then

@@ -13,7 +13,7 @@ local M = {}
 local log = require("utils.log")
 
 function M.create_plugin(self, ctx)
-    local home_dir = os.getenv("HOME") or "/home/blah"
+    local home_dir = os.getenv("HOME") or "/tmp"
     local project_snippets_dir = ".aicoder/snippets"
     local global_snippets_dir = home_dir .. "/.config/luna/snippets"
 

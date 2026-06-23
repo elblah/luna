@@ -31,7 +31,7 @@ function M.new(tool_manager, message_history, plugin_system)
         
         local tool_results = {}
         
-        for _, tool_call in ipairs(tool_calls) do
+        for i, tool_call in ipairs(tool_calls) do
             local result = self:_execute_single_tool_call(tool_call)
             if result then
                 table.insert(tool_results, result)
@@ -39,6 +39,13 @@ function M.new(tool_manager, message_history, plugin_system)
             
             -- Stop if guidance mode was activated
             if self._guidance_mode then
+                -- Add cancelled results for remaining tools
+                for j = i + 1, #tool_calls do
+                    table.insert(tool_results, {
+                        tool_call_id = tool_calls[j].id or "",
+                        content = "Tool execution cancelled - guidance requested",
+                    })
+                end
                 break
             end
         end

@@ -10,18 +10,22 @@ function M.validate_arguments(args)
     if not args.path or args.path == "" then
         args.path = "."
     end
+    if not args.max_depth or args.max_depth < 1 then
+        args.max_depth = 1
+    end
 end
 
 function M.format_arguments(args)
     local path = args.path or "."
     local pattern = args.pattern
+    local depth = args.max_depth or 1
     if pattern then
-        return ("Listing '%s' matching: %s"):format(path, pattern)
+        return ("Listing '%s' matching: %s (depth %d)"):format(path, pattern, depth)
     end
     if path and path ~= "." then
-        return ("Listing directory: %s"):format(path)
+        return ("Listing directory: %s (depth %d)"):format(path, depth)
     end
-    return ""
+    return depth > 1 and ("Listing current dir (depth %d)"):format(depth) or ""
 end
 
 local function check_sandbox(path)
@@ -47,6 +51,7 @@ end
 function M.execute(args)
     local path = args.path or "."
     local pattern = args.pattern
+    local max_depth = args.max_depth or 1
     
     -- Resolve path
     local h = io.popen("realpath '" .. path:gsub("'", "'\\''") .. "'")
@@ -85,8 +90,8 @@ function M.execute(args)
     
     if pattern then
         -- Use find for pattern matching
-        local cmd = ("find %s -type f -name '%s' 2>/dev/null"):format(
-            resolved_path, pattern
+        local cmd = ("find %s -maxdepth %d -type f -name '%s' 2>/dev/null"):format(
+            resolved_path, max_depth, pattern
         )
         h = io.popen(cmd)
         for line in h:lines() do
@@ -104,7 +109,7 @@ function M.execute(args)
             ignore_set[dir] = true
         end
         
-        local cmd = ("find %s -type f 2>/dev/null"):format(resolved_path)
+        local cmd = ("find %s -maxdepth %d -type f 2>/dev/null"):format(resolved_path, max_depth)
         h = io.popen(cmd)
         for line in h:lines() do
             -- Filter by ignore patterns (filename only)
@@ -188,6 +193,11 @@ M.TOOL_DEFINITION = {
             pattern = {
                 type = "string",
                 description = "Optional glob pattern to filter files (e.g., '*.py', '**/*.txt').",
+            },
+            max_depth = {
+                type = "integer",
+                description = "Maximum directory depth to list (default: 1 = current level only).",
+                default = 1
             },
         },
     },

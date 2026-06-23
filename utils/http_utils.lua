@@ -71,12 +71,6 @@ function M.fetch(request_url, options)
         end
     end
     
-    -- Use timeout command as OS-level safety net: -k sends SIGKILL after 5s grace
-    table.insert(curl_cmd, 1, "timeout")
-    table.insert(curl_cmd, 2, "-k")
-    table.insert(curl_cmd, 3, "5")
-    table.insert(curl_cmd, 4, tostring(timeout))
-    
     table.insert(curl_cmd, "-m")
     table.insert(curl_cmd, tostring(timeout))
     table.insert(curl_cmd, request_url)

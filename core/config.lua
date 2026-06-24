@@ -37,19 +37,26 @@ M._yolo_mode = os.getenv("YOLO_MODE") == "1"
 -- Reasoning format registry (easily extensible)
 -- Maps provider format names to their specific settings
 M._reasoning_formats = {
+    openai = {
+        effort_field = "reasoning_effort",  -- top-level, no extra_body
+    },
     deepseek = {
         effort_field = "reasoning_effort",  -- snake_case
+        uses_extra_body = true,
     },
     glm = {
         effort_field = "reasoningEffort",  -- camelCase
+        uses_extra_body = true,
     },
     openrouter = {
         effort_field = "reasoning_effort",
+        uses_extra_body = true,
     },
 }
 
 -- Model name patterns for auto-detection
 M._reasoning_format_patterns = {
+    openai = {"gpt", "o1", "o3", "o4"},
     deepseek = {"deepseek"},
     glm = {"glm", "zhipuai", "z.ai"},
     openrouter = {"openrouter"},
@@ -526,7 +533,15 @@ function M.set_debug(enabled)
 end
 
 -- Thinking extra body (for extra_body parameter)
+-- Returns nil if format doesn't use extra_body (e.g., OpenAI)
 function M.thinking_extra_body()
+    local fmt = M.get_reasoning_format()
+    if fmt and M._reasoning_formats[fmt] then
+        if not M._reasoning_formats[fmt].uses_extra_body then
+            return nil  -- OpenAI doesn't use extra_body for thinking
+        end
+    end
+    
     local mode = M.thinking()
     if mode == "default" then
         return nil

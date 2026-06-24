@@ -25,6 +25,10 @@ function M.is_safe_path(path)
     return true
 end
 
+function M.dirname(path)
+    return path:match("^(.+)/[^/]+$") or "."
+end
+
 function M.validate_path(path, context)
     context = context or "operation"
     if not M.is_safe_path(path) then

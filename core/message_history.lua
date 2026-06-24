@@ -3,6 +3,7 @@
 local log = require("utils.log")
 local token_estimator = require("core.token_estimator")
 local config = require("core.config")
+local json = require("utils.json")
 
 local M = {}
 
@@ -96,11 +97,18 @@ function M.new(stats)
     end
     
     function self:add_tool_results(tool_results)
+        local max_size = config.max_tool_result_size()
         for i, tool_result in ipairs(tool_results) do
+            local content = tool_result.content or ""
+            -- Truncate oversized tool results to prevent context explosion
+            if #content > max_size then
+                content = content:sub(1, max_size) .. "\n\n[... truncated to " .. max_size .. " chars by max_tool_result_size]"
+                log.warn("[message_history] Truncated tool result (" .. #tool_result.content .. " -> " .. #content .. " chars)")
+            end
             local tool_message = {
                 role = "tool",
                 tool_call_id = tool_result.tool_call_id or "unknown",
-                content = tool_result.content or "",
+                content = content,
             }
             table.insert(this.messages, tool_message)
             if this._plugin_system then
@@ -324,11 +332,21 @@ function M.new(stats)
             -- Safety: if compaction didn't reduce to at least half, abort
             local min_reduction = context_before / 2
             if context_after >= min_reduction then
-                log.error("[X] Compaction ineffective: " .. context_before .. " -> " .. context_after .. " tokens (need < " .. math.floor(min_reduction) .. "). Aborting compaction.")
-                this.messages = old_messages
-                this:estimate_context()
-                this.is_compacting = false
-                return
+                log.error("[X] Compaction ineffective: " .. context_before .. " -> " .. context_after .. " tokens (need < " .. math.floor(min_reduction) .. ").")
+                -- Save recovery session before exit
+                local recovery_dir = ".aicoder"
+                os.execute("mkdir -p " .. recovery_dir)
+                local ts = tostring(os.time())
+                local rand = tostring(math.random(100000, 999999))
+                local recovery_path = recovery_dir .. "/recovery-session-" .. ts .. "-" .. rand .. ".json"
+                local f = io.open(recovery_path, "w")
+                if f then
+                    f:write(json.encode(old_messages))
+                    f:close()
+                    io.stderr:write("[message_history] Recovery session saved to: " .. recovery_path .. "\n")
+                end
+                io.stderr:write("[FATAL] Compaction failed to reduce context size. Exiting to prevent infinite loop.\n")
+                os.exit(1)
             end
             
             this:increment_compaction_count()

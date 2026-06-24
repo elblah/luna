@@ -66,6 +66,12 @@ function M.execute(args)
     local exists = h:read("*a"):gsub("%s+$", "") == "exists"
     h:close()
     
+    -- Ensure parent directory exists
+    local dir = path_utils.dirname(path)
+    if dir ~= "." then
+        os.execute("mkdir -p '" .. dir:gsub("'", "'\\''") .. "' 2>/dev/null")
+    end
+
     -- Write file
     local f, err = io.open(path, "w")
     if not f then

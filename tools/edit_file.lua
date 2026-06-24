@@ -146,6 +146,12 @@ function M.execute(args)
     -- Replace using proper literal matching (works on Lua 5.1 and 5.3)
     local new_content = utils.replace_string(content, old_string, new_string, 1)
     
+    -- Ensure parent directory exists
+    local dir = path_utils.dirname(path)
+    if dir ~= "." then
+        os.execute("mkdir -p '" .. dir:gsub("'", "'\\''") .. "' 2>/dev/null")
+    end
+
     -- Write the new content
     local wf, werr = io.open(path, "w")
     if not wf then

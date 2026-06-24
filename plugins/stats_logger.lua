@@ -10,8 +10,11 @@ local log = require("utils.log")
 local json = require("utils.json")
 local datetime = require("utils.datetime_utils")
 local temp_utils = require("utils.temp_file_utils")
+local exec = require("utils.exec_utils")
 
-local SOCKET_PATH = temp_utils.get_temp_dir() .. "/stats_server.sock"
+-- Socket path must use $TMP env var to match Python/C stats_server.
+-- Luna runs in a sandbox where /tmp != $TMP, so get_temp_dir() won't work.
+local SOCKET_PATH = (os.getenv("TMP") or "/tmp") .. "/stats_server.sock"
 
 -- Generate session ID once per session
 local session_id = nil
@@ -27,29 +30,32 @@ local function get_session_id()
 end
 
 local function write_to_central(line)
-    -- Write to stats_server via Unix socket using nc
+    -- Write data to temp file first
     local tmp_file = temp_utils.create_temp_file("luna_stats")
     local f = io.open(tmp_file, "w")
     if not f then return false end
     f:write(line)
     f:close()
 
-    -- Use nc (netcat) to send to Unix socket
+    -- Use exec.exec() (same as run_shell_command.lua) for reliable timeout + error capture.
+    -- Pattern: test socket with nc -z, then pipe data. Fail marker on any error.
+    -- Socket path must match what stats_server uses: os.getenv("TMP") or "/tmp"
     local cmd = string.format(
-        "cat %s | nc -q 1 -U %s 2>/dev/null; rm -f %s",
-        tmp_file, SOCKET_PATH, tmp_file
+        "timeout -k 0.1s 0.2s nc -z -U %s 2>/dev/null && cat %s | nc -q 1 -U %s 2>/dev/null || echo '__STATS_FAIL__'",
+        SOCKET_PATH, tmp_file, SOCKET_PATH
     )
-    local handle = io.popen(cmd)
-    if handle then
-        local response = handle:read("*a")
-        handle:close()
-        if response and response:match("^ok") then
-            return true
-        end
-    end
-    -- Socket doesn't exist or write failed - cleanup
+    local result = exec.exec(cmd, 5)
+
+    -- Cleanup temp file
     os.remove(tmp_file)
-    return false
+
+    if result.stdout and result.stdout:match("__STATS_FAIL__") then
+        io.stderr:write(("\n[stats_logger] central server not available, stats not sent:\n  %s\n"):format(line:gsub("%s+$", "")))
+        io.stderr:flush()
+        return false
+    end
+
+    return true
 end
 
 local function log_usage(usage)
@@ -74,7 +80,6 @@ local function log_usage(usage)
         end
     end
     local model = stats.last_model or os.getenv("MODEL") or "unknown"
-    local base_url = os.getenv("API_ENDPOINT") or ""
     local elapsed = datetime.round_time(stats.last_api_time or 0)
     local timestamp = datetime.get_stats_timestamp()
 
@@ -88,6 +93,7 @@ local function log_usage(usage)
         model = model,
         elapsed = elapsed,
         usage = usage,
+        origin = "luna",
     }
 
     -- Add optional tag
@@ -113,10 +119,7 @@ local function log_usage(usage)
     end
 
     -- Send to central server
-    local ok = write_to_central(json_line .. "\n")
-    if not ok then
-        -- Silent fail if central server not running
-    end
+    write_to_central(json_line .. "\n")
 end
 
 function M.create_plugin(ctx)

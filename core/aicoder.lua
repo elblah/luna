@@ -74,13 +74,15 @@ function AICoder.new()
     self.notify_hooks = nil
     
     -- Detect pipe mode
-    self._is_pipe_mode = false  -- Lua doesn't have isatty equivalent easily
+    self._is_pipe_mode = stdin_utils.is_stdin_piped()
     
     -- Auto-save functionality
     local auto_save_env = os.getenv("AICODER_AUTO_SAVE")
     self._auto_save_enabled = (auto_save_env ~= "0" and auto_save_env ~= "false" and auto_save_env ~= "no")
     local default_path = ".aicoder/last-session.json"
-    self._session_file_path = os.getenv("AICODER_AUTO_SAVE_FILE") or default_path
+    local env_path = os.getenv("AICODER_AUTO_SAVE_FILE")
+    self._session_file_path = env_path or default_path
+    self._using_default_save_path = (env_path == nil)
     
     return self
 end
@@ -241,7 +243,9 @@ function AICoder:shutdown()
     if self.input_handler and self.input_handler.close then
         self.input_handler:close()
     end
-    log.success("Shutting down...")
+    if not self._is_pipe_mode then
+        log.success("Shutting down...")
+    end
 end
 
 function AICoder:_create_tmp_dir()

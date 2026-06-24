@@ -125,7 +125,7 @@ def main():
             out_f.close()
 
     print(f"Done: {added} added, {skipped} skipped (already in central), {errors} errors", file=sys.stderr)
-    if added > 0:
+    if added > 0 and not args.dry_run:
         print(f"Recovered {added} entries to {central_log}")
 
 

@@ -67,14 +67,14 @@ function M.get_reasoning_format()
     if env_format then return env_format end
     
     local model = M.model()
-    if not model then return nil end
+    if not model then return "openai" end  -- default to OpenAI
     model = model:lower()
     for format, patterns in pairs(M._reasoning_format_patterns) do
         for _, p in ipairs(patterns) do
             if model:find(p) then return format end
         end
     end
-    return nil
+    return "openai"  -- default to OpenAI if no match
 end
 
 function M.get_effort_field()

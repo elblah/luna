@@ -9,6 +9,7 @@ M.PluginContext = M
 local log = require("utils.log")
 local config = require("core.config")
 local datetime = require("utils.datetime_utils")
+local BaseCommand = require("core.commands.base")
 
 -- Plugin context for registration callbacks
 local function create_plugin_context(self)
@@ -111,9 +112,24 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
     end
     
     function self:_register_command(name, handler, description)
+        local stored_name = name:gsub("^/", "")
         self.commands[name] = {
-            fn = handler,
-            description = description or "",
+            get_name = function() return stored_name end,
+            get_description = function() return description or "" end,
+            get_aliases = function() return {} end,
+            execute = function(_, args)
+                local args_str
+                if type(args) == "table" then
+                    args_str = table.concat(args, " ")
+                else
+                    args_str = args or ""
+                end
+                local result = handler(args_str)
+                if result then
+                    print(result)
+                end
+                return BaseCommand.CommandResult.new(false, false)
+            end
         }
     end
     

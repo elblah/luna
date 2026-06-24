@@ -64,32 +64,6 @@ function CommandHandler:get_all_commands()
     return self.commands
 end
 
--- Simple command registration for plugins (no class needed)
-function CommandHandler:register_simple_command(name, fn, description)
-    -- Strip leading slash for storage
-    local stored_name = name:gsub("^/", "")
-    local simple_cmd = {
-        get_name = function() return stored_name end,
-        get_description = function() return description or "" end,
-        get_aliases = function() return {} end,
-        execute = function(_, args)
-            -- Handle args as either table or string
-            local args_str
-            if type(args) == "table" then
-                args_str = table.concat(args, " ")
-            else
-                args_str = args or ""
-            end
-            local result = fn(args_str)
-            if result then
-                print(result)
-            end
-            return CommandResult.new(false, false)
-        end
-    }
-    self:register_command(simple_cmd)
-end
-
 function CommandHandler:handle_command(command_line)
     command_line = command_line:gsub("^%s+", ""):gsub("%s+$", "")
 

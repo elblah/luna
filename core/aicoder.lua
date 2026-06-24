@@ -149,9 +149,7 @@ function AICoder:initialize()
     -- Register plugin commands
     local plugin_commands = self.plugin_system:get_plugin_commands()
     for cmd_name, cmd_data in pairs(plugin_commands) do
-        self.command_handler:register_simple_command(
-            cmd_name, cmd_data.fn, cmd_data.description
-        )
+        self.command_handler:register_command(cmd_data)
     end
 end
 

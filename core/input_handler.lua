@@ -219,20 +219,6 @@ function InputHandler:register_completer(completer)
     end
 end
 
--- Get completion candidates for current input
-function InputHandler:_completer(text)
-    local candidates = {}
-    for _, fn in ipairs(self.completers) do
-        local ok, result = pcall(fn, text)
-        if ok and type(result) == "table" then
-            for _, c in ipairs(result) do
-                table.insert(candidates, c)
-            end
-        end
-    end
-    return candidates
-end
-
 -- Load prompt history from .aicoder/history via prompt_history module
 function InputHandler:_load_prompt_history()
     local entries = prompt_history.read_history()

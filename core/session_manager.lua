@@ -32,6 +32,11 @@ function SessionManager:process_with_ai()
     -- Ensure all tool calls have corresponding responses before making API call
     self:_ensure_tool_calls_have_responses()
     
+    -- Reset Ctrl+C counter for new AI operation
+    if _G.reset_ctrl_c_count then
+        _G.reset_ctrl_c_count()
+    end
+    
     self.is_processing = true
     
     local ok, err = pcall(function()
@@ -75,15 +80,18 @@ function SessionManager:process_with_ai()
     end)
     
     if not ok then
+        -- Check if error was due to user interrupt (Ctrl+C)
+        if _G.is_ctrl_c_interrupted and _G.is_ctrl_c_interrupted() then
+            -- Clear thinking/error line, return to prompt silently
+            io.write("\r\27[K")
+            io.flush()
+            self.is_processing = false
+            return
+        end
         self:_handle_processing_error(err)
     end
     
     self.is_processing = false
-    
-    -- Reset Ctrl+C counter after successful AI operation
-    if _G.reset_ctrl_c_count then
-        _G.reset_ctrl_c_count()
-    end
 end
 
 function SessionManager:_handle_api_response(response)
@@ -189,6 +197,7 @@ end
 
 -- Temporary error codes that should trigger retry
 local TEMP_ERROR_CODES = {
+    [0] = true,   -- Network/TLS/connection errors
     [401] = true,  -- Unauthorized (transient auth failures)
     [429] = true,  -- Too Many Requests
     [500] = true,  -- Internal Server Error
@@ -212,6 +221,10 @@ function SessionManager:_call_api_with_retry(request)
             -- API returned error
             local status = response.status
             if status and TEMP_ERROR_CODES[status] then
+                -- Check for Ctrl+C before retrying - don't retry if user interrupted
+                if _G.is_ctrl_c_interrupted and _G.is_ctrl_c_interrupted() then
+                    error("Request cancelled by user")
+                end
                 local delay = math.min(2 ^ attempt, 30)  -- Exponential backoff, max 30s
                 log.warn(string.format("Attempt %d/%d failed: HTTP %d - %s", attempt, max_attempts, status, response.error))
                 log.warn(string.format("Retrying in %ds...", delay))
@@ -223,6 +236,9 @@ function SessionManager:_call_api_with_retry(request)
             end
         else
             -- pcall failed (unexpected error)
+            if _G.is_ctrl_c_interrupted and _G.is_ctrl_c_interrupted() then
+                error("Request cancelled by user")
+            end
             error(tostring(response))
         end
     end

@@ -57,6 +57,11 @@ function _G.reset_ctrl_c_count()
     ctrl_c_count = 0
 end
 
+-- Check if Ctrl+C was pressed during current AI operation
+function _G.is_ctrl_c_interrupted()
+    return ctrl_c_count > 0
+end
+
 local AICoder = require("core.aicoder")
 local datetime = require("utils.datetime_utils")
 

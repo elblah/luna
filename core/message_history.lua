@@ -4,6 +4,7 @@ local log = require("utils.log")
 local token_estimator = require("core.token_estimator")
 local config = require("core.config")
 local json = require("utils.json")
+local file_utils = require("utils.file_utils")
 
 local M = {}
 
@@ -335,7 +336,7 @@ function M.new(stats)
                 log.error("[X] Compaction ineffective: " .. context_before .. " -> " .. context_after .. " tokens (need < " .. math.floor(min_reduction) .. ").")
                 -- Save recovery session before exit
                 local recovery_dir = ".aicoder"
-                os.execute("mkdir -p " .. recovery_dir)
+                file_utils.mkdir_p(recovery_dir)
                 local ts = tostring(os.time())
                 local rand = tostring(math.random(100000, 999999))
                 local recovery_path = recovery_dir .. "/recovery-session-" .. ts .. "-" .. rand .. ".json"

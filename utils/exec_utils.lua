@@ -2,6 +2,8 @@
 
 local M = {}
 
+local file_utils = require("utils.file_utils")
+
 -- Get temp directory (uses per-instance isolated dir if available)
 local function get_tmp_dir()
     local ok, config = pcall(require, "core.config")
@@ -26,10 +28,7 @@ function M.exec(command, timeout, cwd)
     local ec = tmp .. ".ec"
 
     -- Ensure temp directory exists (subdirs like /tmp/luna-xxx/ may not exist)
-    local tmp_dir = tmp:match("^(.+)/[^/]+$")
-    if tmp_dir then
-        os.execute("mkdir -p " .. tmp_dir .. " 2>/dev/null")
-    end
+    file_utils.ensure_parent_dir(tmp)
 
     -- Write command to temp script file
     local f = io.open(sh, "w")

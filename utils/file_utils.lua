@@ -121,6 +121,24 @@ function M.file_exists(path)
     return false
 end
 
+-- Create a directory (and parents) with proper shell quoting for path safety
+function M.mkdir_p(dir)
+    if not dir or dir == "" or dir == "." then return true end
+    local cmd = "mkdir -p '" .. tostring(dir):gsub("'", "'\\''") .. "' 2>/dev/null"
+    os.execute(cmd)
+    return true
+end
+
+-- Ensure parent directory of a file path exists
+function M.ensure_parent_dir(filepath)
+    if not filepath then return false end
+    local dir = require("utils.path_utils").dirname(filepath)
+    if dir and dir ~= "." then
+        M.mkdir_p(dir)
+    end
+    return true
+end
+
 -- Read a file without sandbox check (internal use)
 function M.read_file(path)
     if not path then

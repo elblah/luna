@@ -3,6 +3,7 @@
 local M = {}
 
 local config = require("core.config")
+local file_utils = require("utils.file_utils")
 local file_access_tracker = require("core.file_access_tracker")
 local exec_utils = require("utils.exec_utils")
 local path_utils = require("utils.path_utils")
@@ -67,10 +68,7 @@ function M.execute(args)
     h:close()
     
     -- Ensure parent directory exists
-    local dir = path_utils.dirname(path)
-    if dir ~= "." then
-        os.execute("mkdir -p '" .. dir:gsub("'", "'\\''") .. "' 2>/dev/null")
-    end
+    file_utils.ensure_parent_dir(path)
 
     -- Write file
     local f, err = io.open(path, "w")

@@ -6,6 +6,7 @@ local Stats = require("core.stats")
 local MessageHistory = require("core.message_history")
 local ToolManager = require("core.tool_manager")
 local stdin_utils = require("utils.stdin_utils")
+local file_utils = require("utils.file_utils")
 
 -- Provider selection based on API_FORMAT or endpoint detection
 local function select_api_client()
@@ -255,12 +256,10 @@ function AICoder:_create_tmp_dir()
     local id = tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999))
     local tmp_dir = tmp_base .. "/luna-" .. id
     
-    local ok = os.execute("mkdir -p " .. tmp_dir)
-    if ok then
-        config.set_tmp_dir(tmp_dir)
-        if config.debug() then
-            log.debug("Temp dir: " .. tmp_dir)
-        end
+    file_utils.mkdir_p(tmp_dir)
+    config.set_tmp_dir(tmp_dir)
+    if config.debug() then
+        log.debug("Temp dir: " .. tmp_dir)
     end
 end
 

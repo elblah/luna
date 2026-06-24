@@ -11,6 +11,7 @@ local json = require("utils.json")
 local datetime = require("utils.datetime_utils")
 local temp_utils = require("utils.temp_file_utils")
 local exec = require("utils.exec_utils")
+local file_utils = require("utils.file_utils")
 
 -- Socket path must use $TMP env var to match Python/C stats_server.
 -- Luna runs in a sandbox where /tmp != $TMP, so get_temp_dir() won't work.
@@ -107,8 +108,7 @@ local function log_usage(usage)
 
     -- Ensure .aicoder dir exists
     local aicoder_dir = cwd .. "/.aicoder"
-    local mkdir_cmd = "mkdir -p " .. aicoder_dir
-    io.popen(mkdir_cmd):close()
+    file_utils.mkdir_p(aicoder_dir)
 
     -- Append to local stats.log
     local log_path = aicoder_dir .. "/stats.log"

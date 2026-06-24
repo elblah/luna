@@ -4,6 +4,7 @@
 local json = require("utils.json")
 local os = require("os")
 local socket = require("socket")
+local file_utils = require("utils.file_utils")
 local socket_unix = require("socket.unix")
 local config = require("core.config")
 local log = require("utils.log")
@@ -96,7 +97,7 @@ function SocketServer:start()
     end
 
     -- Make sure directory exists
-    os.execute("mkdir -p " .. tmpdir)
+    file_utils.mkdir_p(tmpdir)
 
     -- Remove old socket if exists
     os.remove(self.socket_path)
@@ -495,7 +496,7 @@ function SocketServer:_cmd_save(args)
     local path = (args or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if path == "" then
         local save_dir = (os.getenv("PWD") or ".") .. "/.aicoder/sessions"
-        os.execute("mkdir -p " .. save_dir)
+        file_utils.mkdir_p(save_dir)
         local ts = os.date("%Y-%m-%d_%H-%M-%S")
         path = save_dir .. "/session-" .. ts .. ".json"
     end

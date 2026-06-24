@@ -5,6 +5,8 @@ local os = require("os")
 
 local M = {}
 
+local file_utils = require("utils.file_utils")
+
 function M.get_temp_dir()
     -- Try system /tmp first
     local handle = io.popen("mkdir -p /tmp 2>/dev/null && echo ok")
@@ -73,7 +75,7 @@ function M.write_temp_file(path, content)
     if not path then return end
     local dir = path:match("(.*)/[^/]+$")
     if dir and dir ~= "" then
-        os.execute("mkdir -p " .. string.format("%q", dir))
+        file_utils.mkdir_p(dir)
     end
     local f = io.open(path, "w")
     if f then

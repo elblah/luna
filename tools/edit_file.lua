@@ -7,6 +7,7 @@ local file_access_tracker = require("core.file_access_tracker")
 local utils = require("core.utils")
 local exec_utils = require("utils.exec_utils")
 local path_utils = require("utils.path_utils")
+local file_utils = require("utils.file_utils")
 
 _plugin_system = nil
 
@@ -147,10 +148,7 @@ function M.execute(args)
     local new_content = utils.replace_string(content, old_string, new_string, 1)
     
     -- Ensure parent directory exists
-    local dir = path_utils.dirname(path)
-    if dir ~= "." then
-        os.execute("mkdir -p '" .. dir:gsub("'", "'\\''") .. "' 2>/dev/null")
-    end
+    file_utils.ensure_parent_dir(path)
 
     -- Write the new content
     local wf, werr = io.open(path, "w")

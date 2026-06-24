@@ -169,6 +169,10 @@ function InputHandler:get_user_input()
     end
     
     local line
+    -- Readline prompt: ignore Ctrl+C so user can type freely
+    _G.ignore_ctrl_c = true
+    _G.processing_cancelled = false  -- fresh start for next AI cycle
+    
     if ffi_loaded and rl then
         -- Use readline with history
         local line_ptr = rl.readline("> ")
@@ -186,6 +190,9 @@ function InputHandler:get_user_input()
         line = io.stdin:read()
     end
     
+    -- Re-enable Ctrl+C cancellation
+    _G.ignore_ctrl_c = false
+    
     if line == nil then
         return ""
     end
@@ -196,11 +203,6 @@ function InputHandler:get_user_input()
     -- Save to history
     if line ~= "" then
         self:_save_prompt(line)
-    end
-    
-    -- Reset Ctrl+C counter after successful user input
-    if line and line ~= "" and _G.reset_ctrl_c_count then
-        _G.reset_ctrl_c_count()
     end
     
     return line

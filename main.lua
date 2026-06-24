@@ -21,9 +21,10 @@ end
 -- stdin utils for TTY detection
 local stdin_utils = require("utils.stdin_utils")
 
--- Signal handling: Ctrl+C counter, only /quit exits
-local ctrl_c_count = 0
-local MAX_CTRL_C_TO_EXIT = tonumber(os.getenv("LUNA_MAX_CTRL_C") or "7")
+-- Signal handling: Ctrl+C cancels current AI operation, never exits
+-- ignore_ctrl_c = true when readline prompt is shown (don't cancel prompt)
+_G.processing_cancelled = false
+_G.ignore_ctrl_c = false
 
 pcall(function()
     local ffi = require("ffi")
@@ -32,35 +33,22 @@ pcall(function()
         typedef void (*sighandler_t)(int);
     ]]
     
-    -- Signal handler: increment counter, exit if too many
+    -- Signal handler: cancel AI processing, never exit
     local handler = ffi.cast("sighandler_t", function(sig)
-        ctrl_c_count = ctrl_c_count + 1
-        if ctrl_c_count >= MAX_CTRL_C_TO_EXIT then
-            io.write("\nCtrl+C pressed " .. MAX_CTRL_C_TO_EXIT .. " times... exiting...\n")
-            os.exit(1)
-        end
+        if _G.ignore_ctrl_c then return end
+        _G.processing_cancelled = true
     end)
     
     -- Ignore handlers for TSTP and QUIT
     local SIG_IGN = ffi.cast("sighandler_t", 1)
     
-    -- SIGINT (Ctrl+C) - count it
+    -- SIGINT (Ctrl+C) - cancel processing
     ffi.C.signal(2, handler)
     -- SIGTSTP (Ctrl+Z) - ignored
     ffi.C.signal(18, SIG_IGN)
     -- SIGQUIT (Ctrl+\) - ignored
     ffi.C.signal(3, SIG_IGN)
 end)
-
--- Reset Ctrl+C counter (call after successful AI operation)
-function _G.reset_ctrl_c_count()
-    ctrl_c_count = 0
-end
-
--- Check if Ctrl+C was pressed during current AI operation
-function _G.is_ctrl_c_interrupted()
-    return ctrl_c_count > 0
-end
 
 local AICoder = require("core.aicoder")
 local datetime = require("utils.datetime_utils")

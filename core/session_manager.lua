@@ -29,13 +29,8 @@ function SessionManager:process_with_ai()
         log.debug("*** process_with_ai called")
     end
     
-    -- Ensure all tool calls have corresponding responses before making API call
-    self:_ensure_tool_calls_have_responses()
-    
-    -- Reset Ctrl+C counter for new AI operation
-    if _G.reset_ctrl_c_count then
-        _G.reset_ctrl_c_count()
-    end
+    -- Reset cancellation flag for new AI operation
+    _G.processing_cancelled = false
     
     self.is_processing = true
     
@@ -54,7 +49,7 @@ function SessionManager:process_with_ai()
         log.printc("AI: ", {color = "cyan", bold = true})
         
         -- Check if interrupted
-        if not self.is_processing then
+        if not self.is_processing or _G.processing_cancelled then
             print("\n[AI response interrupted before starting]")
             return
         end
@@ -80,8 +75,8 @@ function SessionManager:process_with_ai()
     end)
     
     if not ok then
-        -- Check if error was due to user interrupt (Ctrl+C)
-        if _G.is_ctrl_c_interrupted and _G.is_ctrl_c_interrupted() then
+        -- Check if cancelled via Ctrl+C
+        if _G.processing_cancelled then
             -- Clear thinking/error line, return to prompt silently
             io.write("\r\27[K")
             io.flush()
@@ -206,11 +201,27 @@ local TEMP_ERROR_CODES = {
     [504] = true,  -- Gateway Timeout
 }
 
+-- Sleep helper: returns false if interrupted (Ctrl+C killed the child)
+local function sleep_secs(n)
+    local ret = os.execute("sleep " .. n)
+    if ret ~= 0 then
+        -- os.execute blocks SIGINT in parent, but child was killed by signal
+        _G.processing_cancelled = true
+        return false
+    end
+    return true
+end
+
 function SessionManager:_call_api_with_retry(request)
     local max_attempts = 10
     local attempt = 1
     
     while attempt <= max_attempts do
+        -- Check if cancelled (Ctrl+C)
+        if _G.processing_cancelled then
+            error("Request cancelled by user")
+        end
+        
         local ok, response = pcall(function()
             return self.api_client:send_request(request)
         end)
@@ -221,14 +232,13 @@ function SessionManager:_call_api_with_retry(request)
             -- API returned error
             local status = response.status
             if status and TEMP_ERROR_CODES[status] then
-                -- Check for Ctrl+C before retrying - don't retry if user interrupted
-                if _G.is_ctrl_c_interrupted and _G.is_ctrl_c_interrupted() then
-                    error("Request cancelled by user")
-                end
                 local delay = math.min(2 ^ attempt, 30)  -- Exponential backoff, max 30s
                 log.warn(string.format("Attempt %d/%d failed: HTTP %d - %s", attempt, max_attempts, status, response.error))
                 log.warn(string.format("Retrying in %ds...", delay))
-                os.execute("sleep " .. delay)
+                -- Sleep with Ctrl+C detection
+                if not sleep_secs(delay) then
+                    error("Request cancelled by user")
+                end
                 attempt = attempt + 1
             else
                 -- Permanent error
@@ -236,9 +246,6 @@ function SessionManager:_call_api_with_retry(request)
             end
         else
             -- pcall failed (unexpected error)
-            if _G.is_ctrl_c_interrupted and _G.is_ctrl_c_interrupted() then
-                error("Request cancelled by user")
-            end
             error(tostring(response))
         end
     end

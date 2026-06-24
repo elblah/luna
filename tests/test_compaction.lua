@@ -40,7 +40,7 @@ local mock_api = {
     stream_request = function(self, messages, opts)
         return {content = {{type = "text", text = "SUMMARY: This is a test summary of the conversation."}}}
     end,
-    streaming_client = mock_streaming
+    api_client = mock_streaming
 }
 local compactor = cs.new(mock_api)
 check("compactor instantiates", type(compactor) == "table")

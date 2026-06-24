@@ -52,11 +52,11 @@ function AICoder.new()
     self.stats = Stats.new()
     self.message_history = MessageHistory.new(self.stats)
     self.tool_manager = ToolManager.new(self.stats)
-    self.streaming_client = ApiClient.new(self.stats, self.tool_manager, self.message_history)
+    self.api_client = ApiClient.new(self.stats, self.tool_manager, self.message_history)
     self.plugin_system = PluginSystem.new(".aicoder/plugins")
     self.context_bar = ContextBar.new(self.plugin_system)
     self.input_handler = InputHandler.new(self.context_bar, self.stats, self.message_history)
-    self.compaction_service = CompactionService.new(self.streaming_client)
+    self.compaction_service = CompactionService.new(self.api_client)
     
     -- Extracted components
     self.tool_executor = ToolExecutor.new(self.tool_manager, self.message_history, self.plugin_system)
@@ -109,13 +109,13 @@ function AICoder:initialize()
     self:_create_tmp_dir()
     
     -- Set API client on message history
-    self.message_history:set_api_client(self.streaming_client)
+    self.message_history:set_api_client(self.api_client)
     
     -- Set plugin system on components
     self.plugin_system:set_app(self)
     self.tool_manager:set_plugin_system(self.plugin_system)
     self.message_history:set_plugin_system(self.plugin_system)
-    self.streaming_client:set_plugin_system(self.plugin_system)
+    self.api_client:set_plugin_system(self.plugin_system)
     
     -- Load plugins
     self.plugin_system:load_plugins()

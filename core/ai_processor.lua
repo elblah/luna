@@ -19,9 +19,9 @@ M.AIProcessorConfig = AIProcessorConfig
 local AIProcessor = {}
 AIProcessor.__index = AIProcessor
 
-function AIProcessor.new(streaming_client, config)
+function AIProcessor.new(api_client, config)
     local self = setmetatable({}, AIProcessor)
-    self.streaming_client = streaming_client
+    self.api_client = api_client
     self.config = config or {}
     return self
 end
@@ -40,7 +40,7 @@ function AIProcessor:process_messages(messages, prompt, send_tools)
     local log = require("utils.log")
 
     local function process_response()
-        local response = self.streaming_client:send_request({
+        local response = self.api_client:send_request({
             messages = all_messages,
             send_tools = send_tools
         })

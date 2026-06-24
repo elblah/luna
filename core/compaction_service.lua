@@ -181,8 +181,8 @@ Prioritize:
 - Failed approaches to prevent repeated mistakes
 - Narrative flow showing how the session progressed]]
 
-    if not self.streaming_client then
-        log.warn("[!] No streaming client available for summarization")
+    if not self.api_client then
+        log.warn("[!] No API client available for summarization")
         return "Previous conversation condensed: " .. #to_summarize .. " messages"
     end
 
@@ -193,7 +193,7 @@ Prioritize:
 
     local full_response = ""
     local ok, err = pcall(function()
-        local response = self.streaming_client:send_request({messages = summary_messages, send_tools = false})
+        local response = self.api_client:send_request({messages = summary_messages, send_tools = false})
         
         -- Check for API error
         if not response then
@@ -332,7 +332,6 @@ end
 function M.new(api_client)
     local self = {
         api_client = api_client,
-        streaming_client = api_client,
     }
 
     function self:_is_image_part(item) return is_image_part(item) end

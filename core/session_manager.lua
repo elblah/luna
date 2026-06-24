@@ -13,7 +13,7 @@ function SessionManager.new(app)
     local self = setmetatable({}, SessionManager)
     self.app = app
     self.message_history = app.message_history
-    self.api_client = app.streaming_client  -- reuse existing field
+    self.api_client = app.api_client
     self.tool_executor = app.tool_executor
     self.context_bar = app.context_bar
     self.stats = app.stats

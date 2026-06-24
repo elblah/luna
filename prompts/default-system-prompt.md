@@ -68,6 +68,5 @@ Your output will be displayed in a terminal. Keep responses concise. Use Markdow
 ---
 Working directory: {current_directory}
 Time: {current_datetime}
-Platform: {system_info}
 Tools: {available_tools}
 Context: {agents_content}

@@ -8,13 +8,8 @@ M.ToolManager = M
 local config = require("core.config")
 local log = require("utils.log")
 
--- Tool definitions
-local read_file = require("tools.read_file")
-local write_file = require("tools.write_file")
-local edit_file = require("tools.edit_file")
-local list_directory = require("tools.list_directory")
-local grep = require("tools.grep")
-local run_shell_command = require("tools.run_shell_command")
+-- Tool module names, loaded lazily in _register_internal_tools
+local TOOL_MODULES = {"read_file", "write_file", "edit_file", "list_directory", "grep", "run_shell_command"}
 
 local function new(stats)
     local self = {
@@ -22,22 +17,32 @@ local function new(stats)
         tools = {},
         read_files = {},
         plugin_system = nil,
+        _tool_modules = {},
     }
     
     function self:set_plugin_system(ps)
         self.plugin_system = ps
-        write_file.set_plugin_system(ps)
-        edit_file.set_plugin_system(ps)
+        if self._tool_modules.write_file then
+            self._tool_modules.write_file.set_plugin_system(ps)
+        end
+        if self._tool_modules.edit_file then
+            self._tool_modules.edit_file.set_plugin_system(ps)
+        end
     end
     
     function self:_register_internal_tools()
+        -- Load tool modules lazily
+        for _, name in ipairs(TOOL_MODULES) do
+            self._tool_modules[name] = require("tools." .. name)
+        end
+        
         local all_tools = {
-            read_file = read_file.TOOL_DEFINITION,
-            write_file = write_file.TOOL_DEFINITION,
-            edit_file = edit_file.TOOL_DEFINITION,
-            list_directory = list_directory.TOOL_DEFINITION,
-            grep = grep.TOOL_DEFINITION,
-            run_shell_command = run_shell_command.TOOL_DEFINITION,
+            read_file = self._tool_modules.read_file.TOOL_DEFINITION,
+            write_file = self._tool_modules.write_file.TOOL_DEFINITION,
+            edit_file = self._tool_modules.edit_file.TOOL_DEFINITION,
+            list_directory = self._tool_modules.list_directory.TOOL_DEFINITION,
+            grep = self._tool_modules.grep.TOOL_DEFINITION,
+            run_shell_command = self._tool_modules.run_shell_command.TOOL_DEFINITION,
         }
         
         local allowed = config.tools_allow()
@@ -112,7 +117,9 @@ local function new(stats)
         -- Track read files (special case for read_file)
         if name == "read_file" and args.path then
             self.read_files[args.path] = true
-            edit_file.record_read(args.path)
+            if self._tool_modules.edit_file then
+                self._tool_modules.edit_file.record_read(args.path)
+            end
         end
         
         -- Execute tool

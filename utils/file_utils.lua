@@ -5,6 +5,13 @@ local os = require("os")
 
 local M = {}
 
+-- Try LuaFileSystem for directory operations (avoids subshells)
+local _lfs = (function()
+    local ok, lfs = pcall(require, "lfs")
+    if ok and lfs then return lfs end
+    return nil
+end)()
+
 -- Module-level state
 local _current_dir = os.getenv("PWD") or "."
 
@@ -122,8 +129,36 @@ function M.file_exists(path)
 end
 
 -- Create a directory (and parents) with proper shell quoting for path safety
+-- Uses lfs if available (no subshell), falls back to mkdir -p
 function M.mkdir_p(dir)
     if not dir or dir == "" or dir == "." then return true end
+    if _lfs then
+        -- Split path and create each component
+        local parts = {}
+        for part in dir:gmatch("[^/]+") do
+            table.insert(parts, part)
+        end
+        -- Build up path component by component
+        local path = dir:sub(1, 1) == "/" and "" or "."
+        for _, part in ipairs(parts) do
+            if path ~= "" and not path:match("/$") then
+                path = path .. "/"
+            end
+            path = path .. part
+            if path ~= "." then
+                local attr = lfs.attributes(path)
+                if not attr then
+                    local ok, err = lfs.mkdir(path)
+                    if not ok then
+                        return false, tostring(err)
+                    end
+                elseif attr.mode ~= "directory" then
+                    return false, "Not a directory: " .. path
+                end
+            end
+        end
+        return true
+    end
     local cmd = "mkdir -p '" .. tostring(dir):gsub("'", "'\\''") .. "' 2>/dev/null"
     os.execute(cmd)
     return true
@@ -185,10 +220,28 @@ function M.write_file_with_sandbox(path, content)
 end
 
 -- List directory contents (parity with Python's list_directory)
+-- Uses lfs if available (no subshell), falls back to ls
 function M.list_directory(path)
     if not path then path = "." end
     if not M.is_within_sandbox(path) then
         return nil, "Access denied: path outside sandbox"
+    end
+    if _lfs then
+        local entries = {}
+        local ok, iter, dir_obj = pcall(_lfs.dir, path)
+        if not ok then
+            return nil, "Cannot list directory: " .. tostring(iter)
+        end
+        if iter then
+            for filename in iter, dir_obj do
+                if filename ~= "." and filename ~= ".." then
+                    table.insert(entries, filename)
+                end
+            end
+            if dir_obj then pcall(_lfs.dir_close, dir_obj) end
+        end
+        table.sort(entries)
+        return entries
     end
     local handle = io.popen("ls -1 -a " .. string.format("%q", path) .. " 2>/dev/null")
     if not handle then
@@ -200,6 +253,32 @@ function M.list_directory(path)
     end
     handle:close()
     return entries
+end
+
+-- List .lua files in a directory (no subshell if lfs available)
+function M.list_lua_files(dir)
+    local result = {}
+    if _lfs then
+        local ok, iter, dir_obj = pcall(_lfs.dir, dir)
+        if ok and iter then
+            for filename in iter, dir_obj do
+                if filename:match("%.lua$") then
+                    table.insert(result, dir .. "/" .. filename)
+                end
+            end
+            if dir_obj then pcall(_lfs.dir_close, dir_obj) end
+        end
+    else
+        local handle = io.popen("ls " .. dir .. "/*.lua 2>/dev/null || true")
+        if handle then
+            local output = handle:read("*a")
+            handle:close()
+            for file in output:gmatch("[^\n]+") do
+                table.insert(result, file)
+            end
+        end
+    end
+    return result
 end
 
 -- Get set of files read by AI requests

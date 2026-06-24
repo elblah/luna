@@ -5,38 +5,9 @@ local os = require("os")
 
 local M = {}
 
-local file_utils = require("utils.file_utils")
-
 function M.get_temp_dir()
-    -- Try system /tmp first
-    local handle = io.popen("mkdir -p /tmp 2>/dev/null && echo ok")
-    if handle then
-        local result = handle:read("*all"):match("ok")
-        handle:close()
-        if result then return "/tmp" end
-    end
-
-    -- Try TMPDIR env var
-    local tmp_dir = os.getenv("TMPDIR")
-    if tmp_dir then
-        handle = io.popen("mkdir -p " .. tmp_dir .. " 2>/dev/null && echo ok")
-        if handle then
-            local result = handle:read("*all"):match("ok")
-            handle:close()
-            if result then return tmp_dir end
-        end
-    end
-
-    -- Fallback to local ./tmp (Termux, etc)
-    local local_tmp = "./tmp"
-    handle = io.popen("mkdir -p " .. local_tmp .. " 2>/dev/null && echo ok")
-    if handle then
-        local result = handle:read("*all"):match("ok")
-        handle:close()
-        if result then return local_tmp end
-    end
-
-    return "./tmp"
+    local tmp = os.getenv("TMPDIR") or "/tmp"
+    return tmp
 end
 
 function M.create_temp_file(prefix, suffix)
@@ -75,6 +46,7 @@ function M.write_temp_file(path, content)
     if not path then return end
     local dir = path:match("(.*)/[^/]+$")
     if dir and dir ~= "" then
+        local file_utils = require("utils.file_utils")
         file_utils.mkdir_p(dir)
     end
     local f = io.open(path, "w")

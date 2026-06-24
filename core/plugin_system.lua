@@ -180,37 +180,13 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
         end
         
         -- 1. Load local plugins first
-        local handle = io.popen("test -d " .. self.plugins_dir .. " && echo yes")
-        local result = handle:read("*a")
-        handle:close()
-        if result:match("yes") then
-            if config.debug() then
-                log.info("[i] Loading local plugins from: " .. self.plugins_dir)
-            end
-            self:_load_plugins_from_dir(self.plugins_dir)
-        end
+        self:_load_plugins_from_dir(self.plugins_dir)
         
         -- 2. Load global plugins, skip if already loaded locally
-        handle = io.popen("test -d " .. self.global_plugins_dir .. " && echo yes")
-        result = handle:read("*a")
-        handle:close()
-        if result:match("yes") then
-            if config.debug() then
-                log.info("[i] Loading global plugins from: " .. self.global_plugins_dir)
-            end
-            self:_load_plugins_from_dir(self.global_plugins_dir)
-        end
+        self:_load_plugins_from_dir(self.global_plugins_dir)
         
         -- 3. Load bundled plugins, skip if already loaded locally or globally
-        handle = io.popen("test -d " .. self.bundled_plugins_dir .. " && echo yes")
-        result = handle:read("*a")
-        handle:close()
-        if result:match("yes") then
-            if config.debug() then
-                log.info("[i] Loading bundled plugins from: " .. self.bundled_plugins_dir)
-            end
-            self:_load_plugins_from_dir(self.bundled_plugins_dir)
-        end
+        self:_load_plugins_from_dir(self.bundled_plugins_dir)
         
         -- Count total loaded plugins
         local count = 0
@@ -223,11 +199,10 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
     end
     
     function self:_load_plugins_from_dir(dir)
-        local handle = io.popen("ls " .. dir .. "/*.lua 2>/dev/null || true")
-        local output = handle:read("*a")
-        handle:close()
+        local file_utils = require("utils.file_utils")
+        local files = file_utils.list_lua_files(dir)
         
-        for file in output:gmatch("[^\n]+") do
+        for _, file in ipairs(files) do
             local basename = file:match("([^/]+)%.lua$")
             if basename then
                 -- Skip if already loaded from a higher-priority tier

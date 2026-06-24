@@ -20,7 +20,8 @@ local function _ensure_history_dir()
     local history_path = aicoder_dir .. "/history"
     
     -- Ensure .aicoder directory exists
-    os.execute("mkdir -p " .. aicoder_dir .. " 2>/dev/null")
+    local file_utils = require("utils.file_utils")
+    file_utils.mkdir_p(aicoder_dir)
     
     _HISTORY_PATH = history_path
     return _HISTORY_PATH

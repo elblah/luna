@@ -1,8 +1,6 @@
 -- Universal prompt builder system
 -- Ported from Python core/prompt_builder.py
 
-local os = require("os")
-
 local M = {}
 
 local PromptContext = {}
@@ -11,42 +9,9 @@ PromptContext.__index = PromptContext
 function PromptContext.new()
     local self = setmetatable({}, PromptContext)
     self.current_directory = os.getenv("PWD") or os.getenv("CWD") or "."
-    self.current_datetime = self:_get_current_datetime()
-    self.system_info = self:_get_system_info()
+    self.current_datetime = os.date("!%Y-%m-%d %H:%M:%S UTC", os.time())
     self.agents_content = nil
     return self
-end
-
-function PromptContext:_get_current_datetime()
-    -- Get current datetime string in UTC
-    local handle = io.popen("date -u +'%Y-%m-%d %H:%M:%S UTC'")
-    if handle then
-        local result = handle:read("*a"):gsub("%s+$", "")
-        handle:close()
-        return result
-    end
-    -- Fallback
-    local t = os.time()
-    return os.date("!%Y-%m-%d %H:%M:%S UTC", t)
-end
-
-function PromptContext:_get_system_info()
-    local platform_name = "Unknown"
-    local machine = "Unknown"
-    
-    local handle = io.popen("uname -s")
-    if handle then
-        platform_name = handle:read("*a"):gsub("%s+$", "")
-        handle:close()
-    end
-    
-    handle = io.popen("uname -m")
-    if handle then
-        machine = handle:read("*a"):gsub("%s+$", "")
-        handle:close()
-    end
-    
-    return "Platform: " .. platform_name .. " (" .. machine .. "), Lua: " .. _VERSION
 end
 
 M.PromptContext = PromptContext
@@ -116,8 +81,6 @@ function PromptBuilder.build_prompt(context, options)
                 return context.current_directory
             elseif var == "current_datetime" then
                 return context.current_datetime
-            elseif var == "system_info" then
-                return context.system_info
             elseif var == "agents_content" then
                 return context.agents_content or ""
             else

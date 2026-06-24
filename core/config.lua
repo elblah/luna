@@ -56,7 +56,7 @@ M._reasoning_formats = {
 
 -- Model name patterns for auto-detection
 M._reasoning_format_patterns = {
-    openai = {"gpt", "o1", "o3", "o4"},
+    openai = {"gpt", "o1", "o3", "o4", "openai"},
     deepseek = {"deepseek"},
     glm = {"glm", "zhipuai", "z.ai"},
     openrouter = {"openrouter"},

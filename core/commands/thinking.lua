@@ -156,6 +156,16 @@ function ThinkingCommand:_show_effort(effort)
 end
 
 function ThinkingCommand:_set_effort(value)
+    local valid = config._get_valid_reasoning_efforts()
+    if valid then
+        local normalized = value:trim():lower()
+        if not valid[normalized] then
+            local valid_list = {}
+            for k in pairs(valid) do table.insert(valid_list, k) end
+            log.error("[*] Invalid effort '" .. value .. "'. Valid values: " .. table.concat(valid_list, ", "))
+            return
+        end
+    end
     local ok, err = pcall(function() config.set_reasoning_effort(value) end)
     if ok then
         log.success("[*] Reasoning effort set to: " .. value)

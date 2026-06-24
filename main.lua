@@ -11,6 +11,13 @@ _G.SCRIPT_DIR = script_dir
 
 package.path = package.path .. ";" .. script_dir .. "/?.lua;" .. script_dir .. "/core/?.lua;" .. script_dir .. "/tools/?.lua;" .. script_dir .. "/utils/?.lua;" .. script_dir .. "/commands/?.lua"
 
+-- Extend string prototype if trim doesn't exist
+if not string.trim then
+    function string.trim(s)
+        return s:match("^%s*(.-)%s*$")
+    end
+end
+
 -- Signal handling: Ctrl+C counter, only /quit exits
 local ctrl_c_count = 0
 local MAX_CTRL_C_TO_EXIT = tonumber(os.getenv("LUNA_MAX_CTRL_C") or "7")

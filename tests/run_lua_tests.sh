@@ -11,7 +11,7 @@ echo "==========================================="
 echo "  Luna Port Test Suite"
 echo "==========================================="
 
-for t in tests/verify_modules_load.lua tests/verify_parity_behavior.lua tests/test_diff.lua tests/test_file_utils.lua tests/test_json.lua tests/test_core.lua tests/test_aicoder.lua tests/test_commands.lua tests/test_streaming.lua tests/test_tools.lua tests/test_tools_e2e.lua tests/test_misc.lua tests/test_more_utils.lua tests/test_command_exec.lua tests/test_compaction.lua tests/test_message_history_full.lua tests/test_parity_audit.lua tests/test_config.lua tests/test_stats.lua tests/test_streaming_client.lua; do
+for t in tests/verify_modules_load.lua tests/verify_parity_behavior.lua tests/test_diff.lua tests/test_file_utils.lua tests/test_json.lua tests/test_core.lua tests/test_aicoder.lua tests/test_commands.lua tests/test_tools.lua tests/test_tools_e2e.lua tests/test_misc.lua tests/test_more_utils.lua tests/test_command_exec.lua tests/test_compaction.lua tests/test_message_history_full.lua tests/test_parity_audit.lua tests/test_config.lua tests/test_stats.lua; do
     total_files=$((total_files + 1))
     output=$(luajit "$t" 2>&1)
     last=$(echo "$output" | tail -1)

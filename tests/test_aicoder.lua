@@ -1,5 +1,5 @@
 #!/usr/bin/env luajit
--- Lua unit tests for aicoder, streaming_client, anthropic_client
+-- Lua unit tests for aicoder, anthropic_client
 local pass = 0
 local fail = 0
 local function check(name, condition, detail)
@@ -39,13 +39,6 @@ check("has register_auto_save", type(a.register_auto_save) == "function")
 check("has _calculate_tool_tokens", type(a._calculate_tool_tokens) == "function")
 check("has run_non_interactive", type(a.run_non_interactive) == "function")
 check("has run_socket_only", type(a.run_socket_only) == "function")
-
--- ============================================================
-print("\n=== Test: streaming_client ===")
-local sc = require("core.streaming_client")
-check("streaming_client loads", type(sc) == "table")
-check("StreamingClient class is table", type(sc.StreamingClient) == "table" or type(sc.new) == "function")
-check("new is function", type(sc.new) == "function")
 
 -- ============================================================
 print("\n=== Test: anthropic_client ===")

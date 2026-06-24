@@ -352,10 +352,6 @@ function M.custom_headers()
     return nil
 end
 
-function M.thinking_extra_body()
-    return nil
-end
-
 function M.top_p()
     local top_p = os.getenv("TOP_P")
     if top_p then

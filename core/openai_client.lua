@@ -210,6 +210,14 @@ function OpenAIClient:_add_optional_params(data)
     
     local pres = config.presence_penalty()
     if pres then data.presence_penalty = pres end
+    
+    -- Add thinking extra_body if configured
+    local thinking_extra = config.thinking_extra_body()
+    if thinking_extra then
+        for k, v in pairs(thinking_extra) do
+            data[k] = v
+        end
+    end
 end
 
 function OpenAIClient:update_token_stats(usage)

@@ -102,7 +102,7 @@ function SessionManager:_handle_api_response(response)
             self.message_history:add_assistant_message(response)
             -- Print reasoning if present
             local reasoning = response.thinking or response.reasoning_content or response.reasoning
-            if reasoning and reasoning ~= "" and show_reasoning then
+            if reasoning and type(reasoning) == "string" and reasoning ~= "" and show_reasoning then
                 print()
                 print(config.colors.dim .. "Reasoning: " .. reasoning .. config.colors.reset)
             end

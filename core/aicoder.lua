@@ -150,8 +150,6 @@ function AICoder:initialize()
             cmd_name, cmd_data.fn, cmd_data.description
         )
     end
-    
-    log.success("Luna initialized")
 end
 
 function AICoder:initialize_system_prompt()
@@ -166,6 +164,8 @@ function AICoder:run()
         self:run_non_interactive()
         return
     end
+    
+    log.success("Luna initialized")
     
     -- Print configuration info (like v3)
     self.config = require("core.config")
@@ -322,9 +322,34 @@ function AICoder:run_non_interactive()
 
     for line in user_input:gmatch("[^\n]+") do
         line = line:gsub("^%s+", ""):gsub("%s+$", "")
-        if line ~= "" then
-            self:add_user_input(line)
+        if line == "" then
+            goto continue
         end
+
+        -- Apply plugin transformations (like vision @image processing)
+        local transformed = self.plugin_system:call_hooks_with_return("after_user_prompt", line)
+        if transformed == nil or transformed == "" then
+            goto continue  -- Plugin handled it or empty
+        end
+        
+        -- Handle command
+        if transformed:sub(1, 1) == "/" then
+            local result = self.command_handler:handle_command(transformed)
+            if result.should_quit then
+                self:shutdown()
+                return
+            end
+            if not result.run_api_call then
+                goto continue
+            end
+            if result.message then
+                self:add_user_input(result.message)
+            end
+        else
+            self:add_user_input(transformed)
+        end
+
+        ::continue::
     end
 
     -- Process with AI

@@ -289,7 +289,7 @@ function M.create_plugin(self, ctx)
             return clean_text .. " " .. table.concat(error_msgs, " ")
         end
         
-        -- Create and add multimodal message
+        -- Create and add multimodal message (v3 pattern)
         local message = create_user_message(clean_text, valid_images)
         
         -- Add missing image errors if any
@@ -298,13 +298,11 @@ function M.create_plugin(self, ctx)
             table.insert(message.content, {type = "text", text = error_text})
         end
         
-        ctx.app.message_history:add_user_message(message)
+        -- Use add_plugin_message like v3 does
+        ctx.app:add_plugin_message(message)
         
-        -- Return cleaned text (without @paths) so API is still called
-        if clean_text and clean_text:match("%S") then
-            return clean_text
-        end
-        return "analyze the image"
+        -- Return empty string to suppress original input (v3 pattern)
+        return ""
     end)
     
     -- Register read_image tool

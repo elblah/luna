@@ -18,6 +18,9 @@ if not string.trim then
     end
 end
 
+-- stdin utils for TTY detection
+local stdin_utils = require("utils.stdin_utils")
+
 -- Signal handling: Ctrl+C counter, only /quit exits
 local ctrl_c_count = 0
 local MAX_CTRL_C_TO_EXIT = tonumber(os.getenv("LUNA_MAX_CTRL_C") or "7")
@@ -64,13 +67,15 @@ local function main()
     local ok, err = pcall(function()
         app:initialize()
         
-        -- Calculate and display startup time (only if AICODER_START_TIME is set)
-        local start_time_str = os.getenv("AICODER_START_TIME")
-        if start_time_str then
-            local start_time = tonumber(start_time_str)
-            if start_time then
-                local startup_time = datetime.get_time() - start_time
-                print(string.format("\027[96mTotal startup time: %.2f seconds\027[0m", startup_time))
+        -- Calculate and display startup time (only in TTY mode)
+        if stdin_utils.is_stdin_tty() then
+            local start_time_str = os.getenv("AICODER_START_TIME")
+            if start_time_str then
+                local start_time = tonumber(start_time_str)
+                if start_time then
+                    local startup_time = datetime.get_time() - start_time
+                    print(string.format("\027[96mTotal startup time: %.2f seconds\027[0m", startup_time))
+                end
             end
         end
         

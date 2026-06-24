@@ -229,20 +229,23 @@ function M.list_directory(path)
     if _lfs then
         local entries = {}
         local ok, iter, dir_obj = pcall(_lfs.dir, path)
-        if not ok then
-            return nil, "Cannot list directory: " .. tostring(iter)
-        end
-        if iter then
+        if ok and iter then
             for filename in iter, dir_obj do
                 if filename ~= "." and filename ~= ".." then
                     table.insert(entries, filename)
                 end
             end
-            if dir_obj then pcall(_lfs.dir_close, dir_obj) end
+            if dir_obj then
+                local ok_close, _ = pcall(dir_obj.close, dir_obj)
+            end
+            if #entries > 0 then
+                table.sort(entries)
+                return entries
+            end
         end
-        table.sort(entries)
-        return entries
+        -- lfs failed or empty dir, fall through to ls
     end
+    
     local handle = io.popen("ls -1 -a " .. string.format("%q", path) .. " 2>/dev/null")
     if not handle then
         return nil, "Cannot list directory"
@@ -258,6 +261,7 @@ end
 -- List .lua files in a directory (no subshell if lfs available)
 function M.list_lua_files(dir)
     local result = {}
+    -- Try lfs first (no subshell), fall back to ls on any failure
     if _lfs then
         local ok, iter, dir_obj = pcall(_lfs.dir, dir)
         if ok and iter then
@@ -266,16 +270,20 @@ function M.list_lua_files(dir)
                     table.insert(result, dir .. "/" .. filename)
                 end
             end
-            if dir_obj then pcall(_lfs.dir_close, dir_obj) end
-        end
-    else
-        local handle = io.popen("ls " .. dir .. "/*.lua 2>/dev/null || true")
-        if handle then
-            local output = handle:read("*a")
-            handle:close()
-            for file in output:gmatch("[^\n]+") do
-                table.insert(result, file)
+            if dir_obj then
+                local ok_close, _ = pcall(dir_obj.close, dir_obj)
             end
+            if #result > 0 then return result end
+        end
+        -- lfs failed or found nothing, fall through to ls
+    end
+    
+    local handle = io.popen("ls " .. dir .. "/*.lua 2>/dev/null || true")
+    if handle then
+        local output = handle:read("*a")
+        handle:close()
+        for file in output:gmatch("[^\n]+") do
+            table.insert(result, file)
         end
     end
     return result

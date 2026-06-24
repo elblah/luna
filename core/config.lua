@@ -34,6 +34,50 @@ M.colors = {
 -- YOLO mode - initialize from env var ONCE at module load time
 M._yolo_mode = os.getenv("YOLO_MODE") == "1"
 
+-- Reasoning format registry (easily extensible)
+-- Maps provider format names to their specific settings
+M._reasoning_formats = {
+    deepseek = {
+        effort_field = "reasoning_effort",  -- snake_case
+    },
+    glm = {
+        effort_field = "reasoningEffort",  -- camelCase
+    },
+    openrouter = {
+        effort_field = "reasoning_effort",
+    },
+}
+
+-- Model name patterns for auto-detection
+M._reasoning_format_patterns = {
+    deepseek = {"deepseek"},
+    glm = {"glm", "zhipuai", "z.ai"},
+    openrouter = {"openrouter"},
+}
+
+function M.get_reasoning_format()
+    local env_format = os.getenv("REASONING_FORMAT")
+    if env_format then return env_format end
+    
+    local model = M.model()
+    if not model then return nil end
+    model = model:lower()
+    for format, patterns in pairs(M._reasoning_format_patterns) do
+        for _, p in ipairs(patterns) do
+            if model:find(p) then return format end
+        end
+    end
+    return nil
+end
+
+function M.get_effort_field()
+    local fmt = M.get_reasoning_format()
+    if fmt and M._reasoning_formats[fmt] then
+        return M._reasoning_formats[fmt].effort_field
+    end
+    return "reasoning_effort"  -- default
+end
+
 function M.context_compact_percentage()
     local val = os.getenv("CONTEXT_COMPACT_PERCENTAGE")
     return val and tonumber(val) or 0
@@ -481,7 +525,7 @@ function M.set_debug(enabled)
     M._debug_enabled = enabled
 end
 
--- Thinking extra body
+-- Thinking extra body (for extra_body parameter)
 function M.thinking_extra_body()
     local mode = M.thinking()
     if mode == "default" then
@@ -489,23 +533,28 @@ function M.thinking_extra_body()
     elseif mode == "off" then
         return {thinking = {type = "disabled"}}
     elseif mode == "on" then
-        local thinking_config = {type = "enabled"}
-        
-        -- Add reasoning_effort if set
+        return {thinking = {type = "enabled"}}
+    end
+    return nil
+end
+
+-- Thinking parameters for top-level (like reasoning_effort for DeepSeek)
+function M.thinking_params()
+    local mode = M.thinking()
+    if mode == "on" then
+        local params = {}
         local effort = M.reasoning_effort()
         if effort then
-            thinking_config.reasoning_effort = effort
+            local field = M.get_effort_field()
+            params[field] = effort
         end
-        
-        -- Add clear_thinking (false = preserve reasoning, true = clear reasoning)
         local clear_thinking = M.clear_thinking()
-        if clear_thinking == nil then
-            thinking_config.clear_thinking = false
-        else
-            thinking_config.clear_thinking = clear_thinking
+        if clear_thinking ~= nil then
+            params.clear_thinking = clear_thinking
         end
-        
-        return {thinking = thinking_config}
+        if next(params) then
+            return params
+        end
     end
     return nil
 end
@@ -640,6 +689,15 @@ function M.print_startup_info()
             local effort = M.reasoning_effort()
             if effort then
                 mode_text = mode_text .. " (effort: " .. effort .. ")"
+            end
+            local fmt = M.get_reasoning_format()
+            local fmt_override = os.getenv("REASONING_FORMAT")
+            if fmt then
+                if fmt_override then
+                    mode_text = mode_text .. " (format: " .. fmt .. ", override)"
+                else
+                    mode_text = mode_text .. " (format: " .. fmt .. ")"
+                end
             end
         end
         log.success(mode_text)

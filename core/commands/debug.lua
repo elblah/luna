@@ -5,6 +5,7 @@ local BaseCommand = require("core.commands.base")
 local CommandResult = BaseCommand.CommandResult
 local log = require("utils.log")
 local config = require("core.config")
+local bool_utils = require("utils.bool_utils")
 
 local DebugCommand = setmetatable({}, BaseCommand.BaseCommand)
 DebugCommand.__index = DebugCommand
@@ -36,18 +37,34 @@ function DebugCommand:execute(args)
 
     local action = args[1]:lower()
 
-    if action == "on" then
-        config.set_debug(true)
-        log.success("[*] Debug mode enabled")
-    elseif action == "off" then
-        config.set_debug(false)
-        log.success("[*] Debug mode disabled")
+    if action == "toggle" then
+        local now = not config.debug()
+        config.set_debug(now)
+        if now then
+            log.success("[*] Debug mode ENABLED")
+        else
+            log.warn("[*] Debug mode DISABLED")
+        end
     elseif action == "verbose" then
         config.set_debug(true)
         config.set_verbose(true)
         log.success("[*] Verbose debug mode enabled")
     else
-        log.error("[*] Unknown debug action: " .. action)
+        local value = bool_utils.parse_bool(action)
+        if value == nil then
+            log.error("[*] Unknown debug action: " .. action .. " (use on/off/toggle)")
+            return CommandResult.new(false, false)
+        end
+        if value == config.debug() then
+            log.warn("[*] Debug mode is already " .. (value and "enabled" or "disabled"))
+        else
+            config.set_debug(value)
+            if value then
+                log.success("[*] Debug mode ENABLED")
+            else
+                log.warn("[*] Debug mode DISABLED")
+            end
+        end
     end
 
     return CommandResult.new(false, false)

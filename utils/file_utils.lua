@@ -139,7 +139,7 @@ function M.mkdir_p(dir)
             table.insert(parts, part)
         end
         -- Build up path component by component
-        local path = dir:sub(1, 1) == "/" and "" or "."
+        local path = dir:sub(1, 1) == "/" and "/" or "."
         for _, part in ipairs(parts) do
             if path ~= "" and not path:match("/$") then
                 path = path .. "/"

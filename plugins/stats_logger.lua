@@ -15,7 +15,14 @@ local file_utils = require("utils.file_utils")
 
 -- Socket path must use $TMP env var to match Python/C stats_server.
 -- Luna runs in a sandbox where /tmp != $TMP, so get_temp_dir() won't work.
-local SOCKET_PATH = (os.getenv("TMP") or "/tmp") .. "/stats_server.sock"
+-- If $TMP is not set (e.g. Android/Termux), central server is disabled.
+local SOCKET_PATH
+local _central_available = false
+local tmp_val = os.getenv("TMP")
+if tmp_val then
+    SOCKET_PATH = tmp_val .. "/stats_server.sock"
+    _central_available = true
+end
 
 -- Generate session ID once per session
 local session_id = nil
@@ -31,6 +38,7 @@ local function get_session_id()
 end
 
 local function write_to_central(line)
+    if not _central_available then return true end
     -- Write data to temp file first
     local tmp_file = temp_utils.create_temp_file("luna_stats")
     local f = io.open(tmp_file, "w")

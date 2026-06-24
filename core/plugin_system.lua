@@ -60,7 +60,7 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
     local self = {
         plugins_dir = plugins_dir or ".aicoder/plugins",
         global_plugins_dir = global_plugins_dir or home_dir .. "/.config/luna/plugins",
-        bundled_plugins_dir = bundled_plugins_dir or script_dir .. "plugins",
+        bundled_plugins_dir = bundled_plugins_dir or script_dir .. "/plugins",
         plugins = {},
         loaded_plugin_names = {},  -- Track loaded plugin names to avoid duplicates
         tools = {},

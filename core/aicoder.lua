@@ -133,6 +133,49 @@ function AICoder:initialize()
     for cmd_name, cmd_data in pairs(plugin_commands) do
         self.command_handler:register_command(cmd_data)
     end
+
+    -- Load session from SESSION_JSON_FILE if set
+    local session_file = config.session_file()
+    if session_file ~= "" then
+        local f, err = io.open(session_file, "r")
+        if f then
+            local content = f:read("*all")
+            f:close()
+            local json = require("utils.json")
+            local ok, session_data = pcall(json.decode, content)
+            if ok and type(session_data) == "table" then
+                local messages
+                if session_data.messages then
+                    messages = session_data.messages
+                else
+                    messages = session_data
+                end
+                if type(messages) == "table" then
+                    -- Insert non-system messages after current system prompt
+                    local current = self.message_history:get_messages()
+                    local system_msg = nil
+                    for _, msg in ipairs(current) do
+                        if msg.role == "system" then
+                            system_msg = msg
+                            break
+                        end
+                    end
+                    if system_msg then
+                        local new_messages = {system_msg}
+                        for _, msg in ipairs(messages) do
+                            if msg.role ~= "system" then
+                                table.insert(new_messages, msg)
+                            end
+                        end
+                        self.message_history:set_messages(new_messages)
+                    else
+                        self.message_history:set_messages(messages)
+                    end
+                    log.info("Session loaded from " .. session_file)
+                end
+            end
+        end
+    end
 end
 
 function AICoder:initialize_system_prompt()
@@ -218,6 +261,26 @@ function AICoder:shutdown()
     -- Auto-save on exit (like v3)
     if self._auto_save_enabled then
         self:save_session()
+    end
+    
+    -- Save to SESSION_JSON_FILE if set
+    local session_file = config.session_file()
+    if session_file ~= "" then
+        local json = require("utils.json")
+        local messages = self.message_history:get_session_messages()
+        if messages and #messages > 0 then
+            local f, err = io.open(session_file, "w")
+            if f then
+                local ok, encoded = pcall(function() return json.encode(messages) end)
+                if ok then
+                    f:write(encoded)
+                    f:close()
+                    log.info("Session saved to " .. session_file)
+                else
+                    f:close()
+                end
+            end
+        end
     end
     
     -- Clean shutdown

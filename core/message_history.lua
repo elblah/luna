@@ -150,6 +150,17 @@ function M.new(stats)
         end
         return chat
     end
+
+    -- Get all messages except system role (for session persistence)
+    function self:get_session_messages()
+        local session = {}
+        for _, msg in ipairs(this.messages) do
+            if msg.role ~= "system" then
+                table.insert(session, msg)
+            end
+        end
+        return session
+    end
     
     function self:estimate_context()
         -- Use token_estimator with caching (like Python)

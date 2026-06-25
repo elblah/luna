@@ -448,6 +448,16 @@ function M.total_timeout()
     return tonumber(val) or 300
 end
 
+-- Session file path (load on start, save on exit)
+function M.session_file()
+    return os.getenv("AICODER_SESSION_FILE") or os.getenv("SESSION_JSON_FILE") or ""
+end
+
+-- Session output file path (append AI responses as JSONL)
+function M.session_output_file()
+    return os.getenv("AICODER_SESSION_OUTPUT") or os.getenv("SESSION_OUTPUT_FILE") or ""
+end
+
 function M.total_timeout_extension()
     local val = os.getenv("TOTAL_TIMEOUT_EXTENSION") or "30"
     return tonumber(val) or 30

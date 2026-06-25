@@ -116,7 +116,28 @@ function LoadCommand:execute(args)
     end
 
     if type(messages) == "table" then
-        self.context.message_history:set_messages(messages)
+        -- Preserve current system prompt, replace rest
+        local mh = self.context.message_history
+        local current_messages = mh:get_messages()
+        local system_msg = nil
+        for _, msg in ipairs(current_messages) do
+            if msg.role == "system" then
+                system_msg = msg
+                break
+            end
+        end
+        if system_msg then
+            -- Keep system, insert loaded (non-system) messages after it
+            local new_messages = {system_msg}
+            for _, msg in ipairs(messages) do
+                if msg.role ~= "system" then
+                    table.insert(new_messages, msg)
+                end
+            end
+            mh:set_messages(new_messages)
+        else
+            mh:set_messages(messages)
+        end
         log.success("Session loaded from " .. filename)
     else
         log.error("Invalid session file format")

@@ -24,6 +24,33 @@ function SessionManager.new(app)
     return self
 end
 
+-- Append assistant response to SESSION_OUTPUT_FILE (JSONL)
+function SessionManager:_append_to_output_file(content, tool_calls, response)
+    local output_file = config.session_output_file()
+    if output_file == "" then return end
+    
+    local json = require("utils.json")
+    local entry = {
+        role = "assistant",
+        content = content,
+        timestamp = os.time(),
+    }
+    if tool_calls and #tool_calls > 0 then
+        entry.tool_calls = tool_calls
+    end
+    -- Include reasoning if present
+    local reasoning = response.thinking or response.reasoning_content or response.reasoning
+    if reasoning and type(reasoning) == "string" and reasoning ~= "" then
+        entry.reasoning = reasoning
+    end
+    
+    local f, err = io.open(output_file, "a")
+    if f then
+        f:write(json.encode(entry) .. "\n")
+        f:close()
+    end
+end
+
 function SessionManager:process_with_ai()
     if config.debug() then
         log.debug("*** process_with_ai called")
@@ -103,6 +130,7 @@ function SessionManager:_handle_api_response(response)
         -- No tool calls - text response or empty
         if has_content then
             self.message_history:add_assistant_message(response)
+            self:_append_to_output_file(content, nil, response)
             -- Print reasoning if present
             local reasoning = response.thinking or response.reasoning_content or response.reasoning
             if reasoning and type(reasoning) == "string" and reasoning ~= "" and show_reasoning then
@@ -115,6 +143,7 @@ function SessionManager:_handle_api_response(response)
         else
             -- Empty response - this triggers empty_retry via after_ai_processing hook
             self.message_history:add_assistant_message({content = ""})
+            self:_append_to_output_file("", nil, {})
         end
         -- Call plugin hooks after AI processing (no tool calls case)
         if self.plugin_system then
@@ -165,6 +194,7 @@ function SessionManager:_handle_api_response(response)
         end
         
         self.message_history:add_assistant_message(assistant_message)
+        self:_append_to_output_file(assistant_message.content, tool_calls_for_message, response)
         
         -- Print reasoning and content if present
         local reasoning = response.thinking or response.reasoning_content or response.reasoning

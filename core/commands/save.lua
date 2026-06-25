@@ -34,7 +34,7 @@ function SaveCommand:execute(args)
         filename = args[1]
     end
 
-    local messages = self.context.message_history:get_messages()
+    local messages = self.context.message_history:get_session_messages()
 
     -- Only save if there's at least one real user message or assistant message
     local has_real_content = false

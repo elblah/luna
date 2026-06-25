@@ -55,6 +55,13 @@ function CommandHandler:get_command(name)
     if cmd then return cmd end
     -- Check plugin commands
     if self.plugin_system and self.plugin_system.commands then
+        -- Resolve plugin aliases
+        if self.plugin_system._plugin_aliases then
+            local resolved = self.plugin_system._plugin_aliases[name]
+            if resolved then
+                actual_name = resolved
+            end
+        end
         return self.plugin_system.commands[actual_name]
     end
     return nil

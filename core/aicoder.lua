@@ -104,7 +104,6 @@ end
 
 function AICoder:initialize()
     config.validate_config()
-    self:initialize_system_prompt()
     
     -- Create isolated temp directory for this instance
     self:_create_tmp_dir()
@@ -119,8 +118,11 @@ function AICoder:initialize()
     self.message_history:set_plugin_system(self.plugin_system)
     self.api_client:set_plugin_system(self.plugin_system)
     
-    -- Load plugins
+    -- Load plugins (must happen before system prompt so hooks are registered)
     self.plugin_system:load_plugins()
+    
+    -- Build system prompt after plugins have registered their hooks
+    self:initialize_system_prompt()
     
     -- Transfer plugin completers to input_handler
     local plugin_completers = self.plugin_system:get_completers()
@@ -181,6 +183,10 @@ end
 function AICoder:initialize_system_prompt()
     local PB = require("core.prompt_builder")
     local system_prompt = PB.PromptBuilder.build_system_prompt()
+    -- Plugin hook to modify system prompt
+    if self.plugin_system then
+        system_prompt = self.plugin_system:call_hooks_with_return("before_system_prompt", system_prompt)
+    end
     self.message_history:add_system_message(system_prompt)
 end
 
@@ -255,6 +261,11 @@ function AICoder:add_user_input(user_input)
 end
 
 function AICoder:shutdown()
+    -- Plugin hook before exit
+    if self.plugin_system then
+        self.plugin_system:call_hooks("before_exit")
+    end
+
     -- Clean up temp directory
     self:_cleanup_tmp_dir()
     

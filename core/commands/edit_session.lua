@@ -1,5 +1,5 @@
--- Memory command - Export conversation JSON to temp file, edit with $EDITOR, then reload
--- Ported from Python commands/memory.py
+-- Edit session command - Export conversation JSON to temp file, edit with $EDITOR, then reload
+-- Renamed from memory.lua to free up /memory for memory plugin
 
 local BaseCommand = require("core.commands.base")
 local CommandResult = BaseCommand.CommandResult
@@ -7,30 +7,30 @@ local log = require("utils.log")
 local temp_file_utils = require("utils.temp_file_utils")
 local json = require("utils.json")
 
-local MemoryCommand = setmetatable({}, BaseCommand.BaseCommand)
-MemoryCommand.__index = MemoryCommand
+local EditSessionCommand = setmetatable({}, BaseCommand.BaseCommand)
+EditSessionCommand.__index = EditSessionCommand
 
-function MemoryCommand.new(context)
-    local self = setmetatable({}, MemoryCommand)
+function EditSessionCommand.new(context)
+    local self = setmetatable({}, EditSessionCommand)
     self.context = context
-    self._name = "memory"
-    self._description = "Edit conversation memory in $EDITOR"
+    self._name = "edit-session"
+    self._description = "Edit session JSON in $EDITOR"
     return self
 end
 
-function MemoryCommand:get_name()
+function EditSessionCommand:get_name()
     return self._name
 end
 
-function MemoryCommand:get_description()
+function EditSessionCommand:get_description()
     return self._description
 end
 
-function MemoryCommand:get_aliases()
-    return {"m"}
+function EditSessionCommand:get_aliases()
+    return {"es"}
 end
 
-function MemoryCommand:execute(args)
+function EditSessionCommand:execute(args)
     local message_history = self.context.message_history
 
     -- Get non-system messages (consistent with session persistence)
@@ -141,4 +141,4 @@ function MemoryCommand:execute(args)
     return CommandResult.new(false, false)
 end
 
-return MemoryCommand
+return EditSessionCommand

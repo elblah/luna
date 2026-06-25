@@ -91,10 +91,10 @@ check("edit loads", type(edit) == "table")
 check("new is function", type(edit.new) == "function")
 
 -- ============================================================
-print("\n=== Test: memory command ===")
-local memory = require("core.commands.memory")
-check("memory loads", type(memory) == "table")
-check("new is function", type(memory.new) == "function")
+print("\n=== Test: edit-session command ===")
+local edit_session = require("core.commands.edit_session")
+check("edit_session loads", type(edit_session) == "table")
+check("new is function", type(edit_session.new) == "function")
 
 -- ============================================================
 print("\n=== Test: retry command ===")

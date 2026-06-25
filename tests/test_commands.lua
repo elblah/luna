@@ -35,7 +35,7 @@ check("list_commands is function", type(r.list_commands) == "function")
 print("\n=== Test: individual commands load ===")
 local cmd_names = {
     "compact", "debug", "detail", "edit", "help",
-    "load", "memory", "new", "quit", "retry",
+    "load", "edit_session", "new", "quit", "retry",
     "sandbox", "save", "stats", "thinking", "yolo"
 }
 for _, name in ipairs(cmd_names) do

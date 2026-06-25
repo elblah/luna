@@ -77,7 +77,7 @@ function CommandRegistry:_register_all_commands()
         {name = "sandbox", module = require("core.commands.sandbox")},
         {name = "edit", module = require("core.commands.edit")},
         {name = "retry", module = require("core.commands.retry")},
-        {name = "memory", module = require("core.commands.memory")},
+        {name = "edit-session", module = require("core.commands.edit_session")},
         {name = "yolo", module = require("core.commands.yolo")},
         {name = "detail", module = require("core.commands.detail")},
         {name = "new", module = require("core.commands.new")},

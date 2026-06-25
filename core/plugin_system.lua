@@ -18,8 +18,8 @@ local function create_plugin_context(self)
         _register_tool_fn = function(name, fn, desc, params, auto_approved, format_args, generate_preview)
             self:_register_tool(name, fn, desc, params, auto_approved, format_args, generate_preview)
         end,
-        _register_command_fn = function(name, handler, desc)
-            self:_register_command(name, handler, desc)
+        _register_command_fn = function(name, handler, desc, aliases)
+            self:_register_command(name, handler, desc, aliases)
         end,
         _register_hook_fn = function(event_name, handler)
             self:_register_hook(event_name, handler)
@@ -39,9 +39,9 @@ local function create_plugin_context(self)
             end
         end,
         
-        register_command = function(ctx, name, handler, description)
+        register_command = function(ctx, name, handler, description, aliases)
             if ctx._register_command_fn then
-                ctx._register_command_fn(name, handler, description)
+                ctx._register_command_fn(name, handler, description, aliases)
             end
         end,
         
@@ -80,6 +80,7 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
         context = nil,
         _app = nil,
         _tool_manager = nil,
+        _plugin_aliases = {},
     }
     
     self.context = create_plugin_context(self)
@@ -128,12 +129,13 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
         end
     end
     
-    function self:_register_command(name, handler, description)
+    function self:_register_command(name, handler, description, aliases)
         local stored_name = name:gsub("^/", "")
+        aliases = aliases or {}
         self.commands[name] = {
             get_name = function() return stored_name end,
             get_description = function() return description or "" end,
-            get_aliases = function() return {} end,
+            get_aliases = function() return aliases end,
             execute = function(_, args)
                 local args_str
                 if type(args) == "table" then
@@ -148,6 +150,10 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
                 return BaseCommand.CommandResult.new(false, false)
             end
         }
+        -- Register aliases for command_handler lookup
+        for _, alias in ipairs(aliases) do
+            self._plugin_aliases[alias] = name
+        end
     end
     
     function self:_register_hook(event_name, handler)

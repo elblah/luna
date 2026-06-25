@@ -35,7 +35,7 @@ local modules = {
     "core.commands.edit",
     "core.commands.help",
     "core.commands.load",
-    "core.commands.memory",
+    "core.commands.edit_session",
     "core.commands.new",
     "core.commands.quit",
     "core.commands.registry",

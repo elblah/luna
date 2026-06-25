@@ -138,7 +138,7 @@ function MemoryCommand:execute(args)
     -- Clean up temp file
     temp_file_utils.delete_file(temp_file)
 
-    return CommandResult.new(true, false)
+    return CommandResult.new(false, false)
 end
 
 return MemoryCommand

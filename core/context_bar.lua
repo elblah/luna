@@ -133,11 +133,19 @@ function ContextBar:create_progress_bar(percentage)
 end
 
 function ContextBar:print_context_bar(stats, message_history)
+    -- Plugin hook before context bar (ai path)
+    if self.plugin_system then
+        self.plugin_system:call_hooks("on_before_context_bar", "ai")
+    end
     local context_bar = self:format_context_bar(stats, message_history)
     print(context_bar)
 end
 
 function ContextBar:print_context_bar_for_user(stats, message_history)
+    -- Plugin hook before context bar (user path)
+    if self.plugin_system then
+        self.plugin_system:call_hooks("on_before_context_bar", "user")
+    end
     local context_bar = self:format_context_bar(stats, message_history)
     print("\n" .. context_bar)
 end

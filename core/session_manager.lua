@@ -189,9 +189,6 @@ function SessionManager:_handle_api_response(response)
             assistant_message[k] = v
         end
         assistant_message.tool_calls = tool_calls_for_message
-        if assistant_message.content == "" or not assistant_message.content then
-            assistant_message.content = "I'll help you with that."
-        end
         
         self.message_history:add_assistant_message(assistant_message)
         self:_append_to_output_file(assistant_message.content, tool_calls_for_message, response)

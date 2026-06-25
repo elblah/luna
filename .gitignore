@@ -7,3 +7,4 @@ test_ctrl_c
 test_data.txt
 luna
 *.luastatic.c
+*.json

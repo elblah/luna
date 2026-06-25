@@ -103,6 +103,12 @@ function M.execute(args)
     
     local files = {}
     
+    -- Build ignore set for directory filtering
+    local ignore_set = {}
+    for _, dir in ipairs(ignore_dirs) do
+        ignore_set[dir] = true
+    end
+    
     -- Build find command based on type filter
     local find_type = ""
     if list_type == "file" then
@@ -118,20 +124,25 @@ function M.execute(args)
         )
         h = io.popen(cmd)
         for line in h:lines() do
-            table.insert(files, line)
-            if #files >= MAX_FILES + 1 then
-                break
+            local filename = line:match("([^/]+)$") or ""
+            local skip = false
+            for _, p in ipairs(ignore_patterns) do
+                if filename:match("%" .. p .. "$") then
+                    skip = true
+                    break
+                end
+            end
+            if not skip and ignore_set[filename] then
+                skip = true
+            end
+            if not skip then
+                table.insert(files, line)
+                if #files >= MAX_FILES + 1 then break end
             end
         end
         h:close()
     else
         -- No pattern - use find for listing (files and/or directories)
-        -- Build ignore paths manually since --exclude doesn't work on all find versions
-        local ignore_set = {}
-        for _, dir in ipairs(ignore_dirs) do
-            ignore_set[dir] = true
-        end
-        
         local cmd = ("find %s -maxdepth %d%s 2>/dev/null"):format(resolved_path, max_depth, find_type)
         h = io.popen(cmd)
         for line in h:lines() do
@@ -148,13 +159,11 @@ function M.execute(args)
                         break
                     end
                 end
-                -- Filter by ignore dirs (any path component)
+                -- Filter by ignore dirs (entry's own name only, not parent components)
                 if not skip then
-                    for part in line:gmatch("([^/]+)") do
-                        if ignore_set[part] then
-                            skip = true
-                            break
-                        end
+                    local basename = line:match("([^/]+)$") or ""
+                    if ignore_set[basename] then
+                        skip = true
                     end
                 end
                 if not skip then

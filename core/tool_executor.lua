@@ -217,6 +217,13 @@ function M.new(tool_manager, message_history, plugin_system)
                 log.success("[*] YOLO mode ENABLED")
                 return true
             end
+
+            -- Handle detail command
+            if approval == "detail" then
+                config.set_detail_mode(true)
+                log.success("[*] Detail mode ENABLED")
+                return true
+            end
             
             -- Parse + modifier for guidance
             local has_guidance = approval:match("%+$")
@@ -249,7 +256,7 @@ function M.new(tool_manager, message_history, plugin_system)
                 return true
             end
             
-            log.error("Invalid option. Valid: Y, n, a, d, yes, no (append + for guidance mode)")
+            log.error("Invalid option. Valid: Y, n, a, d, yes, no, yolo, detail (append + for guidance mode)")
         end
     end
     

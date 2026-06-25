@@ -32,8 +32,10 @@ function M:create_plugin(ctx)
         f:close()
         if not content or #content == 0 then return nil end
         if #content > MAX_AUTOLOAD_BYTES then
-            log.warn("[memory] autoload.md too large (" .. #content .. " bytes, max " .. MAX_AUTOLOAD_BYTES .. ")")
-            return nil
+            log.warn("[memory] autoload.md truncated (" .. #content .. " bytes, max " .. MAX_AUTOLOAD_BYTES .. ")")
+            -- Truncate and append note so AI knows it was cut
+            local trunc_note = "\n\n[... truncated to " .. MAX_AUTOLOAD_BYTES .. " bytes ...]"
+            content = content:sub(1, MAX_AUTOLOAD_BYTES - #trunc_note) .. trunc_note
         end
         return content
     end
@@ -55,9 +57,11 @@ function M:create_plugin(ctx)
                 f:close()
                 if content and #content > MAX_AUTOLOAD_BYTES then
                     local msg = string.format(
-                        "WARNING: `%s` is %d bytes (max %d). " ..
-                        "Trim it with `edit_file` to keep it under the limit.",
-                        filepath, #content, MAX_AUTOLOAD_BYTES
+                        "CRITICAL: `%s` is %d bytes, exceeding the %d byte limit. " ..
+                        "Your persistent memory from `autoload.md` is being TRUNCATED. " ..
+                        "Fix this NOW: use `edit_file` to trim `autoload.md` " ..
+                        "under %d bytes, or you will lose memory each session.",
+                        filepath, #content, MAX_AUTOLOAD_BYTES, MAX_AUTOLOAD_BYTES
                     )
                     log.warn("[memory] " .. msg)
                     if _app and _app.message_history then

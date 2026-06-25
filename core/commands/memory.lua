@@ -33,8 +33,8 @@ end
 function MemoryCommand:execute(args)
     local message_history = self.context.message_history
 
-    -- Get messages
-    local messages = message_history.messages or {}
+    -- Get non-system messages (consistent with session persistence)
+    local messages = message_history:get_session_messages() or {}
     if #messages == 0 then
         log.warn("No messages in session")
         return CommandResult.new(false, false)
@@ -110,10 +110,30 @@ function MemoryCommand:execute(args)
         return CommandResult.new(false, false)
     end
 
-    -- Replace messages via set_messages to update context estimate
-    message_history:set_messages(edited_messages)
+    -- Preserve current system prompt, replace rest (like load.lua)
+    local current_messages = message_history:get_messages()
+    local system_msg = nil
+    for _, msg in ipairs(current_messages) do
+        if msg.role == "system" then
+            system_msg = msg
+            break
+        end
+    end
+
+    if system_msg then
+        local new_messages = {system_msg}
+        for _, msg in ipairs(edited_messages) do
+            if msg.role ~= "system" then
+                table.insert(new_messages, msg)
+            end
+        end
+        message_history:set_messages(new_messages)
+    else
+        message_history:set_messages(edited_messages)
+    end
 
     log.success("Reloaded " .. #edited_messages .. " messages from editor")
+    log.dim("System prompt preserved (not shown/editable)")
 
     -- Clean up temp file
     temp_file_utils.delete_file(temp_file)

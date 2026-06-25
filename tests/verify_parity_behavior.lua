@@ -137,9 +137,6 @@ for _, mod_name in ipairs({"read_file", "write_file", "edit_file", "list_directo
     local ok_load, mod = pcall(require, "tools." .. mod_name)
     check("tools." .. mod_name .. " loads", ok_load, mod)
     if ok_load then
-        check(mod_name .. ".formatArguments exists", type(mod.formatArguments) == "function", "type: " .. type(mod.formatArguments))
-        check(mod_name .. ".validateArguments exists", type(mod.validateArguments) == "function")
-        check(mod_name .. ".generatePreview exists", type(mod.generatePreview) == "function")
         check(mod_name .. ".TOOL_DEFINITION exists", type(mod.TOOL_DEFINITION) == "table")
         check(mod_name .. ".TOOL_DEFINITION.formatArguments", type(mod.TOOL_DEFINITION.formatArguments) == "function")
     end

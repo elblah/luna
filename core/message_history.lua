@@ -275,7 +275,7 @@ function M.new(stats)
         end
         
         if orphan_count > 0 then
-            log.warn("[!] Removed " .. orphan_count .. " orphan tool results: " .. table.concat(removed_ids, ", "))
+            log.debug("[!] Removed " .. orphan_count .. " orphan tool results: " .. table.concat(removed_ids, ", "))
         end
         this.messages = new_messages
         this:estimate_context()

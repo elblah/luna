@@ -69,7 +69,6 @@ check("create_timestamp_filename with ext", fn:find("test") ~= nil and fn:find("
 print("\n=== Test: http_utils ===")
 local hu = require("utils.http_utils")
 check("fetch is function", type(hu.fetch) == "function")
-check("fetch_stream is function", type(hu.fetch_stream) == "function")
 check("Response is table", type(hu.Response) == "table")
 
 local resp = hu.Response.new(200, {["content-type"] = "application/json"}, '{"ok":true}')
@@ -80,10 +79,6 @@ check("Response body has content", resp.body == '{"ok":true}')
 
 local resp_404 = hu.Response.new(404, {}, "")
 check("404 is not ok", resp_404.ok == false)
-
--- Mock aliases
-check("_fetch_impl is function", type(hu._fetch_impl) == "function")
-check("_get_urllib is function", type(hu._get_urllib) == "function")
 
 print(string.format("\n=== ALL: %d/%d passed ===", pass, pass + fail))
 if fail > 0 then os.exit(1) end

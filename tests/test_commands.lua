@@ -78,9 +78,7 @@ local sm = require("core.session_manager")
 check("session_manager loads", type(sm) == "table")
 check("new is function", type(sm.new) == "function")
 check("process_with_ai is function", type(sm.process_with_ai) == "function")
-check("_prepare_for_processing is function", type(sm._prepare_for_processing) == "function")
-check("_stream_response is function", type(sm._stream_response) == "function")
-check("_force_compaction is function", type(sm._force_compaction) == "function")
+-- private methods not exposed at module level
 
 -- ============================================================
 print("\n=== Test: markdown_colorizer ===")

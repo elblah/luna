@@ -58,8 +58,7 @@ function M.fetch(request_url, options)
     
     local tmp_file = nil
     if method == "POST" and body ~= "" then
-        local temp_utils = require("utils.temp_file_utils")
-        tmp_file = temp_utils.create_temp_file("luna_req")
+        tmp_file = os.tmpname()
         local f = io.open(tmp_file, "w")
         if f then
             f:write(body)
@@ -67,6 +66,7 @@ function M.fetch(request_url, options)
             table.insert(curl_cmd, "-d")
             table.insert(curl_cmd, "@" .. tmp_file)
         else
+            io.stderr:write("[http] ERROR: Cannot write temp file: " .. tostring(tmp_file) .. "\n")
             tmp_file = nil
         end
     end
@@ -77,6 +77,19 @@ function M.fetch(request_url, options)
     table.insert(curl_cmd, "2>/dev/null")
     
     local cmd_str = table.concat(curl_cmd, " ")
+    
+    -- Debug: print the actual curl command being executed
+    if os.getenv("DEBUG") == "1" then
+        io.stderr:write("[http] " .. cmd_str .. "\n")
+        if tmp_file then
+            local f = io.open(tmp_file, "r")
+            if f then
+                io.stderr:write("[http] Request body:\n" .. f:read("*a") .. "\n")
+                f:close()
+            end
+        end
+    end
+    
     local handle = io.popen(cmd_str)
     if not handle then
         if tmp_file then os.remove(tmp_file) end

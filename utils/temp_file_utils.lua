@@ -11,15 +11,8 @@ function M.get_temp_dir()
 end
 
 function M.create_temp_file(prefix, suffix)
-    prefix = prefix or "temp"
-    suffix = suffix or ""
-    local temp_dir = M.get_temp_dir()
-
-    math.randomseed(os.time() + os.clock() * 1000000)
-    local random_suffix = string.format("%08x", math.random(0, 0xFFFFFFFF))
-
-    local filename = temp_dir .. "/" .. prefix .. "_" .. random_suffix .. suffix
-    return filename
+    -- os.tmpname() returns a unique temp path that's always writable
+    return os.tmpname()
 end
 
 function M.cleanup_old_temp_files(prefix, max_age_hours)

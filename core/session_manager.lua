@@ -88,7 +88,7 @@ function SessionManager:process_with_ai()
         end
         
         -- Show thinking indicator
-        io.write(config.colors.dim .. "Thinking..." .. config.colors.reset)
+        io.write(config.colors.dim .. "thinking..." .. config.colors.reset)
         io.flush()
         
         local messages = self.message_history:get_messages()

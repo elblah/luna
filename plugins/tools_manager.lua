@@ -24,51 +24,29 @@ function M:create_plugin(ctx)
     local function list_tools()
         local tools = get_all_tools()
         local lines = {}
-        
-        local internal_tools = {}
-        local plugin_tools = {}
+        local sorted = {}
         
         if tools and next(tools) then
             table.insert(lines, "Available Tools:")
             table.insert(lines, "")
             
             for name, tool_def in pairs(tools) do
-                local tool_type = tool_def.type or "unknown"
                 local description = tool_def.description or "No description"
                 local auto_approved = tool_def.auto_approved or false
                 local status = auto_approved and "[auto]" or "[needs approval]"
                 local tool_info = string.format("  %-25s - %-50s %s", name, description:sub(1, 50), status)
-                
-                if tool_type == "internal" then
-                    table.insert(internal_tools, {name, tool_info})
-                elseif tool_type == "plugin" then
-                    table.insert(plugin_tools, {name, tool_info})
-                else
-                    table.insert(internal_tools, {name, tool_info})
-                end
+                table.insert(sorted, {name, tool_info})
             end
             
-            -- Sort
-            table.sort(internal_tools, function(a, b) return a[1] < b[1] end)
-            table.sort(plugin_tools, function(a, b) return a[1] < b[1] end)
-            
-            if #internal_tools > 0 then
-                table.insert(lines, "Internal Tools:")
-                for _, v in ipairs(internal_tools) do
-                    table.insert(lines, v[2])
-                end
-                table.insert(lines, "")
+            table.sort(sorted, function(a, b) return a[1] < b[1] end)
+            for _, v in ipairs(sorted) do
+                table.insert(lines, v[2])
             end
             
-            if #plugin_tools > 0 then
-                table.insert(lines, "Plugin Tools:")
-                for _, v in ipairs(plugin_tools) do
-                    table.insert(lines, v[2])
-                end
-                table.insert(lines, "")
-            end
-            
-            table.insert(lines, "Total: " .. tostring(next(tools) and #tools or 0) .. " tools")
+            local count = 0
+            for _ in pairs(tools) do count = count + 1 end
+            table.insert(lines, "")
+            table.insert(lines, "Total: " .. count .. " tools")
         end
         
         -- Add disabled tools section
@@ -77,41 +55,18 @@ function M:create_plugin(ctx)
             table.insert(lines, "Disabled Tools:")
             table.insert(lines, "")
             
-            local disabled_internal = {}
-            local disabled_plugin = {}
-            
+            local disabled_sorted = {}
             for name, tool_def in pairs(disabled_tools) do
-                local tool_type = tool_def.type or "unknown"
                 local description = tool_def.description or "No description"
                 local auto_approved = tool_def.auto_approved or false
                 local status = auto_approved and "[auto]" or "[needs approval]"
                 local tool_info = string.format("  %-25s - %-50s %s", name, description:sub(1, 50), status)
-                
-                if tool_type == "internal" then
-                    table.insert(disabled_internal, tool_info)
-                else
-                    table.insert(disabled_plugin, tool_info)
-                end
+                table.insert(disabled_sorted, {name, tool_info})
             end
             
-            table.sort(disabled_internal)
-            table.sort(disabled_plugin)
-            
-            if #disabled_internal > 0 then
-                table.insert(lines, "  Internal (disabled):")
-                for _, info in ipairs(disabled_internal) do
-                    table.insert(lines, info)
-                end
-            end
-            
-            if #disabled_plugin > 0 then
-                if #disabled_internal > 0 then
-                    table.insert(lines, "")
-                end
-                table.insert(lines, "  Plugin (disabled):")
-                for _, info in ipairs(disabled_plugin) do
-                    table.insert(lines, info)
-                end
+            table.sort(disabled_sorted, function(a, b) return a[1] < b[1] end)
+            for _, v in ipairs(disabled_sorted) do
+                table.insert(lines, v[2])
             end
             
             local count = 0

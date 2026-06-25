@@ -27,6 +27,11 @@ local function create_plugin_context(self)
         _register_completer_fn = function(completer)
             self:_register_completer(completer)
         end,
+        _unregister_tool_fn = function(name)
+            if self._tool_manager then
+                self._tool_manager.tools[name] = nil
+            end
+        end,
         
         register_tool = function(ctx, name, fn, description, parameters, auto_approved, format_arguments, generate_preview)
             if ctx._register_tool_fn then
@@ -51,6 +56,12 @@ local function create_plugin_context(self)
                 ctx._register_completer_fn(completer)
             end
         end,
+
+        unregister_tool = function(ctx, name)
+            if ctx._unregister_tool_fn then
+                ctx._unregister_tool_fn(name)
+            end
+        end,
     }
 end
 
@@ -63,12 +74,12 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
         bundled_plugins_dir = bundled_plugins_dir or script_dir .. "/plugins",
         plugins = {},
         loaded_plugin_names = {},  -- Track loaded plugin names to avoid duplicates
-        tools = {},
         commands = {},
         hooks = {},
         cleanup_handlers = {},
         context = nil,
         _app = nil,
+        _tool_manager = nil,
     }
     
     self.context = create_plugin_context(self)
@@ -77,7 +88,11 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
         self._app = app
         self.context.app = app
     end
-    
+
+    function self:set_tool_manager(tm)
+        self._tool_manager = tm
+    end
+
     function self:_register_tool(name, fn, description, parameters, auto_approved, format_arguments, generate_preview)
         -- Filter by TOOLS_ALLOW (if set, only allowed tools register)
         local allowed = config.tools_allow()
@@ -108,7 +123,9 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
             tool_def.generatePreview = generate_preview
         end
         
-        self.tools[name] = tool_def
+        if self._tool_manager then
+            self._tool_manager.tools[name] = tool_def
+        end
     end
     
     function self:_register_command(name, handler, description)
@@ -258,11 +275,14 @@ local function new(plugins_dir, global_plugins_dir, bundled_plugins_dir)
     end
     
     function self:get_tools()
-        local result = {}
-        for name, tool in pairs(self.tools) do
-            result[name] = tool
+        if self._tool_manager then
+            local result = {}
+            for name, tool in pairs(self._tool_manager.tools) do
+                result[name] = tool
+            end
+            return result
         end
-        return result
+        return {}
     end
     
     -- Alias for compatibility

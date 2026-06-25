@@ -114,6 +114,7 @@ function AICoder:initialize()
     
     -- Set plugin system on components
     self.plugin_system:set_app(self)
+    self.plugin_system:set_tool_manager(self.tool_manager)
     self.tool_manager:set_plugin_system(self.plugin_system)
     self.message_history:set_plugin_system(self.plugin_system)
     self.api_client:set_plugin_system(self.plugin_system)
@@ -125,25 +126,6 @@ function AICoder:initialize()
     local plugin_completers = self.plugin_system:get_completers()
     for _, completer in ipairs(plugin_completers) do
         self.input_handler:register_completer(completer)
-    end
-    
-    -- Register plugin tools
-    local plugin_tools = self.plugin_system:get_plugin_tools()
-    for tool_name, tool_data in pairs(plugin_tools) do
-        local tool_def = {
-            type = "plugin",
-            description = tool_data.description,
-            parameters = tool_data.parameters,
-            auto_approved = tool_data.auto_approved or false,
-            execute = tool_data.execute,
-        }
-        if tool_data.formatArguments then
-            tool_def.formatArguments = tool_data.formatArguments
-        end
-        if tool_data.generatePreview then
-            tool_def.generatePreview = tool_data.generatePreview
-        end
-        self.tool_manager.tools[tool_name] = tool_def
     end
     
     -- Register plugin commands

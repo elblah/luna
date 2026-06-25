@@ -149,5 +149,21 @@ if config.reset then
     check("reset runs without error", ok3, tostring(err3))
 end
 
+-- ============================================================
+print("\n=== Test: session_file ===")
+local session_f = config.session_file()
+check("session_file returns string", type(session_f) == "string")
+-- session_file is an os.getenv() wrapper; can't set env in this LuaJIT
+-- so just verify consistency
+check("session_file matches AICODER_SESSION_FILE or SESSION_JSON_FILE env",
+    session_f == (os.getenv("AICODER_SESSION_FILE") or os.getenv("SESSION_JSON_FILE") or ""))
+
+-- ============================================================
+print("\n=== Test: session_output_file ===")
+local out_f = config.session_output_file()
+check("session_output_file returns string", type(out_f) == "string")
+check("session_output_file matches AICODER_SESSION_OUTPUT or SESSION_OUTPUT_FILE env",
+    out_f == (os.getenv("AICODER_SESSION_OUTPUT") or os.getenv("SESSION_OUTPUT_FILE") or ""))
+
 print(string.format("\n=== ALL: %d/%d passed ===", pass, pass + fail))
 if fail > 0 then os.exit(1) end

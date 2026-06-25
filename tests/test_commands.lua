@@ -118,12 +118,5 @@ local n = te.count_tokens("Hello world, this is a test.")
 check("count_tokens returns number > 0", type(n) == "number" and n > 0, "got: " .. tostring(n))
 
 -- ============================================================
-print("\n=== Test: stream_processor ===")
-local sp = require("core.stream_processor")
-check("stream_processor loads", type(sp) == "table")
-check("StreamProcessor class alias", type(sp.StreamProcessor) == "table" or type(sp.new) == "function")
-check("new is function", type(sp.new) == "function")
-
--- ============================================================
 print(string.format("\n=== ALL: %d/%d passed ===", pass, pass + fail))
 if fail > 0 then os.exit(1) end

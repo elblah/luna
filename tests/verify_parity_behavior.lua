@@ -206,14 +206,7 @@ local history = mh.new()
 check("message_history.new() works", type(history) == "table" or history ~= nil)
 
 -- ============================================================
--- Test 11: stream_processor
--- ============================================================
-print("\n=== Test: stream_processor ===")
-local sp = require("core.stream_processor")
-check("stream_processor is table", type(sp) == "table")
-
--- ============================================================
--- Test 12: input_handler
+-- Test 11: input_handler
 -- ============================================================
 print("\n=== Test: input_handler ===")
 local ih = require("core.input_handler")

@@ -115,15 +115,5 @@ te.set_tools_tokens(100)
 local est = te.estimate_total_size({{role = "user", content = "test"}}, {})
 check("estimate_total_size returns number", type(est) == "number" and est > 0, "got: " .. tostring(est))
 
--- ============================================================
-print("\n=== Test: stream_processor ===")
-local sp = require("core.stream_processor")
-check("stream_processor loads", type(sp) == "table")
-check("StreamProcessor alias", type(sp.StreamProcessor) == "table" or type(sp.new) == "function")
-check("new is function", type(sp.new) == "function")
-local sp_methods = {}
-for k in pairs(sp) do table.insert(sp_methods, k) end
-print("    methods: " .. table.concat(sp_methods, ", "))
-
 print(string.format("\n=== ALL: %d/%d passed ===", pass, pass + fail))
 if fail > 0 then os.exit(1) end

@@ -217,5 +217,22 @@ if m.get_tool_call_stats then
     print("    stats: " .. (has_data and "has data" or "empty"))
 end
 
+-- ============================================================
+print("\n=== Test: get_session_messages ===")
+m:clear()
+m:add_system_message("System prompt")
+m:add_user_message("User msg")
+m:add_assistant_message("Assistant msg")
+local session_msgs = m:get_session_messages()
+check("get_session_messages returns table", type(session_msgs) == "table")
+check("session messages excludes system", #session_msgs == 2, "got: " .. #session_msgs)
+for _, msg in ipairs(session_msgs) do
+    check("no system role in session", msg.role ~= "system")
+end
+m:clear()
+m:add_system_message("Sys1")
+local empty_session = m:get_session_messages()
+check("session empty when only system", #empty_session == 0)
+
 print(string.format("\n=== ALL: %d/%d passed ===", pass, pass + fail))
 if fail > 0 then os.exit(1) end

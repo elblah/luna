@@ -1,5 +1,6 @@
 -- HTTP utilities for Luna using curl (non-streaming only)
 
+local json = require("utils.json")
 local M = {}
 
 -- Simple response object
@@ -108,8 +109,14 @@ function M.fetch(request_url, options)
         status = 0
         error_msg = "Request cancelled or network error"
     elseif result:match('^%s*{"type":"error"') then
-        status = 401
-        error_msg = "Authentication error"
+        -- Try to extract actual error from API response
+        local ok, parsed = pcall(json.decode, result)
+        if ok and parsed.error then
+            error_msg = parsed.error.message or parsed.error.type or "Unknown API error"
+        else
+            error_msg = "API error"
+        end
+        status = 400  -- Bad request, not necessarily auth
     elseif not result:match('^%s*{') then
         status = 0
         error_msg = "Invalid response"

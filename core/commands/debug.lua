@@ -14,7 +14,7 @@ function DebugCommand.new(context)
     local self = setmetatable({}, DebugCommand)
     self.context = context
     self._name = "debug"
-    self._description = "Toggle debug mode or show status"
+    self._description = "Toggle debug mode, show system prompt, or show status"
     return self
 end
 
@@ -49,6 +49,8 @@ function DebugCommand:execute(args)
         config.set_debug(true)
         config.set_verbose(true)
         log.success("[*] Verbose debug mode enabled")
+    elseif action == "prompt" then
+        return self:_show_prompt()
     elseif action == "env" then
         return self:_show_env()
     else
@@ -85,8 +87,24 @@ function DebugCommand:_show_status()
 
     log.dim("\nQuick actions:")
     log.dim("  /debug on|off|toggle - Manage debug mode")
+    log.dim("  /debug prompt - Show system prompt")
     log.dim("  /debug breakpoint|bp|break - Trigger breakpoint() for debugging")
 
+    return CommandResult.new(false, false)
+end
+
+function DebugCommand:_show_prompt()
+    local mh = self.context.message_history
+    local system_prompt = mh.initial_system_prompt
+    if not system_prompt or not system_prompt.content then
+        log.warn("No system prompt found in session")
+        return CommandResult.new(false, false)
+    end
+
+    log.print("System Prompt (" .. #system_prompt.content .. " chars):")
+    log.dim(string.rep("-", 60))
+    log.print(system_prompt.content)
+    log.dim(string.rep("-", 60))
     return CommandResult.new(false, false)
 end
 
@@ -131,6 +149,7 @@ function DebugCommand:_show_env()
 
     log.dim("\nQuick actions:")
     log.dim("  /debug on|off|toggle - Manage debug mode")
+    log.dim("  /debug prompt - Show system prompt")
     log.dim("  /debug env - Show environment info")
 
     return CommandResult.new(false, false)

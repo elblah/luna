@@ -96,8 +96,10 @@ function M:create_plugin(ctx)
         if not _is_enabled() then
             return
         end
-        -- Only show on AI context bar; user sees own text already
+        -- User context means new interaction: clear pinned state
         if context ~= "ai" then
+            _last_text = ""
+            _last_reasoning = ""
             return
         end
         local display_text = _get_display_text()

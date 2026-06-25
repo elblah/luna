@@ -90,14 +90,30 @@ function AnthropicClient:send_request(request)
         return {ok = false, status = 429, error = "Queue full for IP"}
     end
     
-    -- Convert messages from OpenAI format to Anthropic format
-    local anthropic_messages = self:_convert_messages(messages)
+    -- Separate system messages from conversation messages
+    local system_parts = {}
+    local conversation_messages = {}
+    for _, msg in ipairs(messages) do
+        if msg.role == "system" then
+            table.insert(system_parts, msg.content or "")
+        else
+            table.insert(conversation_messages, msg)
+        end
+    end
+
+    -- Convert non-system messages from OpenAI format to Anthropic format
+    local anthropic_messages = self:_convert_messages(conversation_messages)
     
     local request_data = {
         model = model,
         messages = anthropic_messages,
         max_tokens = config.max_tokens() or 8192,
     }
+    
+    -- Add system as top-level field (Anthropic API spec)
+    if #system_parts > 0 then
+        request_data.system = table.concat(system_parts, "\n")
+    end
     
     self:_add_optional_params(request_data)
     
@@ -275,8 +291,7 @@ function AnthropicClient:_convert_messages(messages)
         local role = msg.role
         
         if role == "system" then
-            -- Anthropic system is a separate field, but we can include it
-            table.insert(result, msg)
+            -- Skip - handled as top-level `system` field in send_request
         elseif role == "tool" then
             -- Convert tool result: tool_call_id -> tool_use_id
             table.insert(result, {

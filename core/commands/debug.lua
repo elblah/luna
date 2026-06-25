@@ -49,6 +49,8 @@ function DebugCommand:execute(args)
         config.set_debug(true)
         config.set_verbose(true)
         log.success("[*] Verbose debug mode enabled")
+    elseif action == "env" then
+        return self:_show_env()
     else
         local value = bool_utils.parse_bool(action)
         if value == nil then
@@ -84,6 +86,52 @@ function DebugCommand:_show_status()
     log.dim("\nQuick actions:")
     log.dim("  /debug on|off|toggle - Manage debug mode")
     log.dim("  /debug breakpoint|bp|break - Trigger breakpoint() for debugging")
+
+    return CommandResult.new(false, false)
+end
+
+function DebugCommand:_show_env()
+    log.print("Environment:")
+    local vars = {
+        OPENAI_API_KEY = { hide = true },
+        API_KEY = { hide = true },
+        ANTHROPIC_API_KEY = { hide = true },
+        API_ENDPOINT = {},
+        API_FORMAT = {},
+        API_PROVIDER = {},
+        API_MODEL = {},
+        OPENAI_MODEL = {},
+        OPENAI_BASE_URL = {},
+        AICODER_SESSION_FILE = {},
+        AICODER_SHELL_CLEAR_VARS = {},
+        HTTP_PROXY = {},
+        HTTPS_PROXY = {},
+        http_proxy = {},
+        https_proxy = {},
+    }
+    for name, opts in pairs(vars) do
+        local val = os.getenv(name)
+        if val and val ~= "" then
+            if opts.hide then
+                log.print("  " .. name .. "=<set (len=" .. #val .. ")>")
+            else
+                log.print("  " .. name .. "=" .. val)
+            end
+        else
+            log.dim("  " .. name .. "=<unset>")
+        end
+    end
+
+    log.print("")
+    log.print("Config:")
+    log.print("  Provider: " .. (os.getenv("API_FORMAT") or (os.getenv("API_ENDPOINT") and (os.getenv("API_ENDPOINT"):find("anthropic") and "anthropic" or "openai") or "openai")))
+    log.print("  Endpoint: " .. config.api_endpoint())
+    log.print("  Model: " .. config.model())
+    log.print("  API Key: " .. (config.api_key() ~= "" and "<set (len=" .. #config.api_key() .. ")>" or "<unset>"))
+
+    log.dim("\nQuick actions:")
+    log.dim("  /debug on|off|toggle - Manage debug mode")
+    log.dim("  /debug env - Show environment info")
 
     return CommandResult.new(false, false)
 end

@@ -39,7 +39,13 @@ function SessionManager:_append_to_output_file(content, tool_calls, response)
         entry.tool_calls = tool_calls
     end
     -- Include reasoning if present
-    local reasoning = response.thinking or response.reasoning_content or response.reasoning
+    local override = config.get_reasoning_field()
+    local reasoning
+    if override then
+        reasoning = response[override]
+    else
+        reasoning = response.thinking or response.reasoning_content or response.reasoning
+    end
     if reasoning and type(reasoning) == "string" and reasoning ~= "" then
         entry.reasoning = reasoning
     end
@@ -132,7 +138,13 @@ function SessionManager:_handle_api_response(response)
             self.message_history:add_assistant_message(response)
             self:_append_to_output_file(content, nil, response)
             -- Print reasoning if present
-            local reasoning = response.thinking or response.reasoning_content or response.reasoning
+            local override = config.get_reasoning_field()
+            local reasoning
+            if override then
+                reasoning = response[override]
+            else
+                reasoning = response.thinking or response.reasoning_content or response.reasoning
+            end
             if reasoning and type(reasoning) == "string" and reasoning ~= "" and show_reasoning then
                 print()
                 print(config.colors.dim .. "Reasoning: " .. reasoning .. config.colors.reset)
@@ -194,7 +206,13 @@ function SessionManager:_handle_api_response(response)
         self:_append_to_output_file(assistant_message.content, tool_calls_for_message, response)
         
         -- Print reasoning and content if present
-        local reasoning = response.thinking or response.reasoning_content or response.reasoning
+        local override = config.get_reasoning_field()
+        local reasoning
+        if override then
+            reasoning = response[override]
+        else
+            reasoning = response.thinking or response.reasoning_content or response.reasoning
+        end
         local content = response.content
         local has_content = type(content) == "string" and content:gsub("%s+", "") ~= ""
         

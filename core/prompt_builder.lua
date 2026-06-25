@@ -9,7 +9,7 @@ PromptContext.__index = PromptContext
 function PromptContext.new()
     local self = setmetatable({}, PromptContext)
     self.current_directory = os.getenv("PWD") or os.getenv("CWD") or "."
-    self.current_datetime = os.date("!%Y-%m-%d %H:%M:%S UTC", os.time())
+    self.current_datetime = os.date("!%Y-%m-%d", os.time())
     self.agents_content = nil
     return self
 end

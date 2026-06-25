@@ -18,6 +18,7 @@ function M:create_plugin(ctx)
     local _mode = "default"  -- "default", "on", "off"
     local _max_len = 300
     local _last_text = ""
+    local _last_reasoning = ""
 
     local function _is_enabled()
         if _mode == "on" then
@@ -30,6 +31,25 @@ function M:create_plugin(ctx)
         return config.detail_mode()
     end
 
+    local function _get_msg_reasoning(msg)
+        -- Build field list: env var override first, then guessed fields
+        local fields = {"reasoning_content", "reasoning", "thinking", "reasoning_text"}
+        local override = config.get_reasoning_field()
+        if override then
+            table.insert(fields, 1, override)
+        end
+        for _, field in ipairs(fields) do
+            local val = msg[field]
+            if val and type(val) == "string" then
+                local trimmed = val:match("^%s*(.-)%s*$")
+                if trimmed and trimmed ~= "" then
+                    return trimmed
+                end
+            end
+        end
+        return ""
+    end
+
     local function after_ai_processing(has_tool_calls)
         local messages = ctx.app.message_history:get_messages()
         if not messages or #messages == 0 then
@@ -39,27 +59,52 @@ function M:create_plugin(ctx)
         for i = #messages, 1, -1 do
             local msg = messages[i]
             if msg.role == "assistant" then
+                -- Capture reasoning if present (check all provider field names)
+                local reasoning = _get_msg_reasoning(msg)
+                if reasoning ~= "" then
+                    _last_reasoning = reasoning
+                end
+                -- Capture text content
                 local content = msg.content
                 if content and type(content) == "string" then
                     local text = content:match("^%s*(.-)%s*$")
                     if text and text ~= "" then
                         _last_text = text
                     end
+                    -- else: no text, keep old _last_text as reminder
                 end
+                -- else: non-string content, keep old _last_text as reminder
                 break
             end
         end
+    end
+
+    -- Heuristic: prefer reasoning if concise (fits _max_len), else text.
+    local function _get_display_text()
+        -- Try reasoning if it fits
+        if _last_reasoning ~= "" and #_last_reasoning <= _max_len then
+            return _last_reasoning
+        end
+        -- Fall back to last text
+        if _last_text ~= "" then
+            return _last_text
+        end
+        return nil
     end
 
     local function on_before_context_bar(context)
         if not _is_enabled() then
             return
         end
-        if not _last_text or _last_text == "" then
+        -- Only show on AI context bar; user sees own text already
+        if context ~= "ai" then
+            return
+        end
+        local display_text = _get_display_text()
+        if not display_text then
             return
         end
 
-        local display_text = _last_text
         if #display_text > _max_len then
             display_text = display_text:sub(1, _max_len) .. "..."
         end
@@ -68,19 +113,14 @@ function M:create_plugin(ctx)
         display_text = display_text:gsub("%s+", " ")
 
         local c = config.colors
-        if context == "user" then
-            -- User path: context bar adds \n before, add \n before Pinned
-            print("\n" .. c.yellow .. "Pinned: " .. display_text .. c.reset)
-        else
-            -- AI path: no \n from context bar, add \n after Pinned
-            print(c.yellow .. "Pinned: " .. display_text .. c.reset .. "\n")
-        end
+        -- AI path: no \n from context bar, add \n after Pinned
+        print(c.yellow .. "Pinned: " .. display_text .. c.reset .. "\n")
     end
 
     local function pinned_command(args)
         if not args or args == "" then
-            local status = string.format("Pinned: mode=%s, max_len=%d, enabled=%s, last_text=%d chars",
-                _mode, _max_len, tostring(_is_enabled()), #_last_text)
+            local status = string.format("Pinned: mode=%s, max_len=%d, enabled=%s, text=%d chars, reasoning=%d chars",
+                _mode, _max_len, tostring(_is_enabled()), #_last_text, #_last_reasoning)
             print(status)
             return
         end
@@ -121,8 +161,8 @@ function M:create_plugin(ctx)
             _max_len = new_len
             print("Max length set to " .. _max_len .. " chars")
         elseif cmd == "status" then
-            local status = string.format("Pinned: mode=%s, max_len=%d, enabled=%s, last_text=%d chars",
-                _mode, _max_len, tostring(_is_enabled()), #_last_text)
+            local status = string.format("Pinned: mode=%s, max_len=%d, enabled=%s, text=%d chars, reasoning=%d chars",
+                _mode, _max_len, tostring(_is_enabled()), #_last_text, #_last_reasoning)
             print(status)
         else
             print("Usage: /pinned [default|on|off|len <n>|status]")

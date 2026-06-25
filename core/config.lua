@@ -77,6 +77,12 @@ function M.get_reasoning_format()
     return "openai"  -- default to OpenAI if no match
 end
 
+function M.get_reasoning_field()
+    local env_field = os.getenv("REASONING_FIELD")
+    if env_field and env_field ~= "" then return env_field end
+    return nil
+end
+
 function M.get_effort_field()
     local fmt = M.get_reasoning_format()
     if fmt and M._reasoning_formats[fmt] then

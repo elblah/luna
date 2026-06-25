@@ -137,6 +137,11 @@ function OpenAIClient:send_request(request)
             
             -- Check various reasoning field names
             local reasoning_fields = {"reasoning_content", "reasoning", "thinking", "reasoning_text"}
+            -- Prepend env var override if set
+            local override = config.get_reasoning_field()
+            if override then
+                table.insert(reasoning_fields, 1, override)
+            end
             for _, field in ipairs(reasoning_fields) do
                 if choice.message[field] and choice.message[field] ~= "" then
                     reasoning_content = choice.message[field]

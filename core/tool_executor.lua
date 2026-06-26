@@ -64,7 +64,12 @@ function M.new(tool_manager, message_history, plugin_system)
         local tool_name = func.name
         
         if not tool_name then
-            return nil
+            local id = tool_call.id or ""
+            log.error("[x] Tool call missing function name")
+            return {
+                tool_call_id = id,
+                content = "Error: Tool call missing 'function.name' field.",
+            }
         end
         
         -- Get tool definition
@@ -130,7 +135,6 @@ function M.new(tool_manager, message_history, plugin_system)
     
     function self:_handle_tool_not_found(tool_name, tool_call_id)
         log.error("[x] Tool not found: " .. tool_name)
-        self.message_history:add_user_message("Error: Tool '" .. tool_name .. "' does not exist.")
         return {
             tool_call_id = tool_call_id,
             content = "Error: Tool '" .. tool_name .. "' does not exist.",

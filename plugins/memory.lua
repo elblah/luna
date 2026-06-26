@@ -76,22 +76,50 @@ function M:create_plugin(ctx)
     ctx:register_hook("after_file_write", after_file_write)
     ctx:register_hook("after_tool_results", after_tool_results)
 
+    -- List memory files for AI awareness
+    local function list_memory_files()
+        local files = {}
+        local f = io.popen("ls " .. MEMORY_DIR .. "/*.md 2>/dev/null")
+        if f then
+            for line in f:lines() do
+                -- Extract just the filename
+                local name = line:match("([^/]+)%.md$")
+                if name then
+                    table.insert(files, name .. ".md")
+                end
+            end
+            f:close()
+        end
+        return files
+    end
+
     -- Hook: inject autoload.md into system prompt (with instructions)
     ctx:register_hook("before_system_prompt", function(prompt)
         local autoload = get_autoload()
-        if autoload then
-            return prompt .. (
-                "\n\n## Persistent Memory\n" ..
-                "`.aicoder/memory/` directory and files already exist. No setup needed.\n" ..
-                "You manage it yourself using `write_file`/`edit_file`.\n" ..
-                "- `autoload.md` < 2KB: Loaded into your prompt each session (shown below).\n" ..
-                "- `index.md`: Your main working file. Organize project knowledge, user preferences, patterns.\n" ..
-                "- Create additional `.md` files for new topics as needed.\n\n" ..
-                "### Current Memory\n" ..
-                autoload
-            )
+        local files = list_memory_files()
+        local has_files = #files > 0
+
+        local section = "\n\n## Persistent Memory"
+        section = section .. "\nMemory files live in `.aicoder/memory/` (relative to CWD, already exists)."
+        section = section .. "\nManage them with `write_file`/`edit_file`. Keep everything inside that directory."
+        section = section .. "\n"
+        section = section .. "\n**How it works:**"
+        section = section .. "\n- `autoload.md` (< 2KB) - loaded into **every session's prompt**. Put critical facts here."
+        section = section .. "\n- `index.md` - main working memory (project knowledge, patterns, user preferences)."
+        section = section .. "\n- Create additional `.md` files for specific topics."
+
+        if has_files then
+            section = section .. "\n\n### Memory Files"
+            for _, name in ipairs(files) do
+                section = section .. "\n- " .. name
+            end
         end
-        return prompt
+
+        if autoload then
+            section = section .. "\n\n### autoload.md\n" .. autoload
+        end
+
+        return prompt .. section
     end)
 
     -- Register /memory command (alias /m)
@@ -115,9 +143,9 @@ function M:create_plugin(ctx)
             -- Create index.md with instructions for the AI
             local index_content = (
                 "# Memory Index\n\n" ..
-                "This directory is your persistent memory. The AI manages these files using write_file/edit_file.\n\n" ..
+                "This directory is your persistent memory. You manage these files using write_file/edit_file.\n\n" ..
                 "## Rules\n" ..
-                "- `autoload.md` (max 2KB) is loaded into your system prompt each session. Keep it concise.\n" ..
+                "- `autoload.md` (< 2KB) - critical facts loaded into every session's prompt. Keep it concise.\n" ..
                 "- `index.md` is your working memory. Organize project knowledge, patterns, conventions here.\n" ..
                 "- Create additional `.md` files for specific topics as needed.\n" ..
                 "- Update memory when you learn something important about the project or user preferences.\n\n" ..
@@ -146,16 +174,17 @@ function M:create_plugin(ctx)
 
             log.success("[memory] Memory initialized at " .. MEMORY_DIR)
 
-            -- Tell the AI via a user message (some APIs reject multiple system messages)
+            -- Rebuild system prompt so memory section is visible immediately
             if ctx.app and ctx.app.message_history then
-                ctx.app.message_history:add_user_message(
-                    "## Memory System\n\n" ..
-                    "`.aicoder/memory/` persistent memory has been initialized.\n" ..
-                    "- `autoload.md` (max 2KB): loaded into your system prompt each session.\n" ..
-                    "- `index.md`: working memory file. Update with key learnings.\n" ..
-                    "- Create additional `.md` files as needed.\n" ..
-                    "Use `write_file`/`edit_file` to manage memory files."
-                )
+                local PB = require("core.prompt_builder")
+                local system_prompt = PB.PromptBuilder.build_system_prompt()
+                if ctx.app.plugin_system then
+                    system_prompt = ctx.app.plugin_system:call_hooks_with_return("before_system_prompt", system_prompt)
+                end
+                local messages = ctx.app.message_history:get_messages()
+                if #messages > 0 and messages[1].role == "system" then
+                    messages[1].content = system_prompt
+                end
             end
 
         elseif subcmd == "rm-all" then

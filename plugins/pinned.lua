@@ -7,6 +7,8 @@
 --   /pinned on       - Always show
 --   /pinned off      - Never show
 --   /pinned len <n>  - Set max characters (default: 300)
+--   /pinned pwd on   - Show current working directory with pinned message
+--   /pinned pwd off  - Hide PWD (default)
 --   /pinned status   - Show current settings
 
 local config = require("core.config")
@@ -19,6 +21,8 @@ function M:create_plugin(ctx)
     local _max_len = 300
     local _last_text = ""
     local _last_reasoning = ""
+    local _pwd_enabled = false
+    local _cached_pwd = nil  -- lazy-loaded on first PWD display
 
     local function _is_enabled()
         if _mode == "on" then
@@ -117,12 +121,25 @@ function M:create_plugin(ctx)
         local c = config.colors
         -- AI path: no \n from context bar, add \n after Pinned
         print(c.yellow .. "Pinned: " .. display_text .. c.reset .. "\n")
+
+        if _pwd_enabled then
+            if not _cached_pwd then
+                local handle = io.popen("pwd 2>/dev/null")
+                if handle then
+                    _cached_pwd = handle:read("*line") or ""
+                    handle:close()
+                end
+            end
+            if _cached_pwd and _cached_pwd ~= "" then
+                print(c.dim .. "PWD: " .. _cached_pwd .. c.reset)
+            end
+        end
     end
 
     local function pinned_command(args)
         if not args or args == "" then
-            local status = string.format("Pinned: mode=%s, max_len=%d, enabled=%s, text=%d chars, reasoning=%d chars",
-                _mode, _max_len, tostring(_is_enabled()), #_last_text, #_last_reasoning)
+            local status = string.format("Pinned: mode=%s, max_len=%d, enabled=%s, pwd=%s, text=%d chars, reasoning=%d chars",
+                _mode, _max_len, tostring(_is_enabled()), _pwd_enabled and "on" or "off", #_last_text, #_last_reasoning)
             print(status)
             return
         end
@@ -163,11 +180,26 @@ function M:create_plugin(ctx)
             _max_len = new_len
             print("Max length set to " .. _max_len .. " chars")
         elseif cmd == "status" then
-            local status = string.format("Pinned: mode=%s, max_len=%d, enabled=%s, text=%d chars, reasoning=%d chars",
-                _mode, _max_len, tostring(_is_enabled()), #_last_text, #_last_reasoning)
+            local status = string.format("Pinned: mode=%s, max_len=%d, enabled=%s, pwd=%s, text=%d chars, reasoning=%d chars",
+                _mode, _max_len, tostring(_is_enabled()), _pwd_enabled and "on" or "off", #_last_text, #_last_reasoning)
             print(status)
+        elseif cmd == "pwd" then
+            if #parts < 2 then
+                print("PWD display: " .. (_pwd_enabled and "on" or "off"))
+                return
+            end
+            local sub = parts[2]:lower()
+            if sub == "on" then
+                _pwd_enabled = true
+                print("PWD display: on")
+            elseif sub == "off" then
+                _pwd_enabled = false
+                print("PWD display: off")
+            else
+                print("Usage: /pinned pwd on|off")
+            end
         else
-            print("Usage: /pinned [default|on|off|len <n>|status]")
+            print("Usage: /pinned [default|on|off|len <n>|status|pwd on|off]")
         end
     end
 

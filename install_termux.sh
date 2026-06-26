@@ -59,13 +59,13 @@ luarocks install --tree "$LUAROCKS_TREE" luasocket 2>/dev/null || \
 echo "  Warning: luasocket install failed, will use shell fallback"
 
 # Setup LUA_PATH in .bashrc
-echo "[4/4] Configuring .bashrc..."
+echo "[4/5] Configuring Lua paths..."
 
 BASHRC="$HOME/.bashrc"
 MARKER="# Luna LuaJIT paths"
 
 if grep -q "$MARKER" "$BASHRC" 2>/dev/null; then
-    echo "  .bashrc already configured"
+    echo "  Lua paths already configured"
 else
     echo "" >> "$BASHRC"
     echo "$MARKER" >> "$BASHRC"
@@ -74,9 +74,26 @@ else
     echo "  Added LUA_PATH and LUA_CPATH to .bashrc"
 fi
 
+# Add luna alias
+echo "[5/5] Adding luna alias..."
+
+LUNA_DIR="$(cd "$(dirname "$0")" && pwd)"
+ALIAS_MARKER="# Luna alias"
+
+if grep -q "$ALIAS_MARKER" "$BASHRC" 2>/dev/null; then
+    echo "  luna alias already configured"
+else
+    echo "" >> "$BASHRC"
+    echo "$ALIAS_MARKER" >> "$BASHRC"
+    echo "alias luna='luajit \"$LUNA_DIR/main.lua\"'" >> "$BASHRC"
+    echo "  Added alias: luna='luajit $LUNA_DIR/main.lua'"
+fi
+
 echo ""
 echo "=== Setup complete ==="
 echo "Run 'source ~/.bashrc' or restart terminal to apply changes."
+echo ""
+echo "Usage: luna"
 echo ""
 echo "Optional: Verify installation with:"
 echo "  luajit -e \"print(require('cjson').encode({test=1}))\""

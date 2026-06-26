@@ -6,6 +6,8 @@
 local script_path = arg[0] or ""
 local script_dir = script_path:match("(.*/)") or "."
 if script_dir == "" then script_dir = "." end
+-- Strip trailing slash to avoid // in concatenated paths
+script_dir = script_dir:gsub("/+$", "")
 -- Make available to other modules (e.g. plugin_system for bundled plugins)
 _G.SCRIPT_DIR = script_dir
 

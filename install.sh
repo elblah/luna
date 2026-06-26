@@ -1,10 +1,20 @@
 #!/bin/bash
-# install.sh - Install optional performance dependencies
-# Run: bash install.sh
-# Supports: Termux, macOS (Homebrew), Linux (apt/apk/dnf/yum/pacman)
-
+# install.sh - Install luna
+#   bash install.sh          # from repo checkout
+#   curl -fsSL https://github.com/elblah/luna/raw/main/install.sh | bash
 set -e
 
+# If not in repo, clone and re-run
+if [ ! -f main.lua ]; then
+    INSTALL_DIR="${LUNA_INSTALL_DIR:-$HOME/.local/share/luna}"
+    echo "=== Luna Installer ==="
+    echo "Target: $INSTALL_DIR"
+    git clone https://github.com/elblah/luna.git "$INSTALL_DIR"
+    cd "$INSTALL_DIR"
+    exec bash install.sh
+fi
+
+LUNA_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 echo "=== Luna Setup ==="
 
 # --- Platform detection ---
@@ -61,7 +71,6 @@ detect_platform
 # --- Install dependencies ---
 echo "[1/3] Installing dependencies..."
 
-# Always need luajit
 if ! command -v luajit &>/dev/null; then
     echo "  Installing luajit..."
     $PKG_UPDATE
@@ -74,13 +83,11 @@ else
     echo "  luajit already installed"
 fi
 
-# Lua packages: prefer system packages on Debian (auto-updated)
-# On Termux/macOS/others, use luarocks
+# System packages on Debian (auto-updated); luarocks on others
 if [ "$OS" = "linux" ] && [ "$PKG_MANAGER" = "apt" ]; then
-    echo "  Installing lua packages via apt (system packages)..."
+    echo "  Installing lua packages via apt..."
     $PKG_INSTALL lua-cjson lua-filesystem lua-socket 2>/dev/null || \
-        echo "  Warning: some system lua packages unavailable, falling back to luarocks"
-    # Still install luarocks if some packages failed
+        echo "  Warning: some system lua packages unavailable"
     if ! command -v luarocks &>/dev/null; then
         $PKG_INSTALL luarocks 2>/dev/null || true
     fi
@@ -94,28 +101,26 @@ else
     fi
 fi
 
-# --- Install LuaRocks packages (if luarocks available) ---
+# --- LuaRocks packages ---
 if command -v luarocks &>/dev/null; then
     echo "[2/3] Installing LuaRocks packages..."
-
-    LUAJIT_VERSION=$(luajit -v 2>&1 | grep -oP 'LuaJIT \K[0-9.]+' || echo "5.1")
     LUAROCKS_TREE="$HOME/.luarocks"
 
     echo "  Installing lua-cjson..."
     luarocks install --tree "$LUAROCKS_TREE" lua-cjson 2>/dev/null || \
     luarocks install --tree "$LUAROCKS_TREE" lua-cjson-lj 2>/dev/null || \
-    echo "  Warning: cjson install failed, will use dkjson fallback"
+    echo "  Warning: cjson install failed, dkjson fallback used"
 
     echo "  Installing luafilesystem..."
     luarocks install --tree "$LUAROCKS_TREE" luafilesystem 2>/dev/null || \
-    echo "  Warning: lfs install failed, will use shell fallback"
+    echo "  Warning: lfs install failed, shell fallback used"
 
     echo "  Installing luasocket..."
     luarocks install --tree "$LUAROCKS_TREE" luasocket 2>/dev/null || \
-    echo "  Warning: luasocket install failed, will use shell fallback"
+    echo "  Warning: luasocket install failed, shell fallback used"
 fi
 
-# --- Determine shell rc file ---
+# --- Shell rc file ---
 RCFILE="$HOME/.bashrc"
 if [ -n "$ZSH_VERSION" ] || [ -f "$HOME/.zshrc" ]; then
     RCFILE="$HOME/.zshrc"
@@ -127,16 +132,6 @@ fi
 
 # --- Add luna alias ---
 echo "[3/3] Adding luna alias..."
-
-# On non-apt systems using luarocks, set LUA_PATH to find installed rocks
-if command -v luarocks &>/dev/null && [ "$PKG_MANAGER" != "apt" ]; then
-    LUAJIT_VERSION=$(luajit -v 2>&1 | grep -oP 'LuaJIT \K[0-9.]+' || echo "5.1")
-    LUAROCKS_TREE="$HOME/.luarocks"
-    LUAJIT_LUA_PATH_VAL="$LUAROCKS_TREE/share/lua/${LUAJIT_VERSION}"
-    LUAJIT_LIB_PATH_VAL="$LUAROCKS_TREE/lib/lua/${LUAJIT_VERSION}"
-fi
-
-LUNA_DIR="$(cd "$(dirname "$0")" && pwd)"
 ALIAS_MARKER="# Luna alias"
 
 if grep -q "$ALIAS_MARKER" "$RCFILE" 2>/dev/null; then
@@ -150,10 +145,6 @@ fi
 
 echo ""
 echo "=== Setup complete ==="
-echo "Run 'source $RCFILE' or restart terminal to apply changes."
+echo "Run 'source $RCFILE' or restart terminal."
 echo ""
 echo "Usage: luna"
-echo ""
-echo "Optional: Verify installation with:"
-echo "  luajit -e \"print(require('cjson').encode({test=1}))\""
-echo "  luajit -e \"print(require('lfs').currentdir())\""

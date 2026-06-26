@@ -363,6 +363,9 @@ function M.new(stats)
             
             this:increment_compaction_count()
             log.success("Conversation compacted: " .. context_before .. " -> " .. context_after .. " tokens")
+            if this._plugin_system then
+                this._plugin_system:call_hooks("after_compaction")
+            end
         end)
         this.is_compacting = false
         if not ok then
@@ -382,6 +385,9 @@ function M.new(stats)
         this:remove_orphan_tool_results()
         this:estimate_context()
         this:increment_compaction_count()
+        if this._plugin_system then
+            this._plugin_system:call_hooks("after_compaction")
+        end
         return new_msgs
     end
 
@@ -397,6 +403,9 @@ function M.new(stats)
         this:remove_orphan_tool_results()
         this:estimate_context()
         this:increment_compaction_count()
+        if this._plugin_system then
+            this._plugin_system:call_hooks("after_compaction")
+        end
         return new_msgs
     end
 

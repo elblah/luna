@@ -122,6 +122,24 @@ function M:create_plugin(ctx)
         return prompt .. section
     end)
 
+    -- Rebuild system prompt in-place (refresh file listing + autoload content)
+    local function _rebuild_system_prompt()
+        if not (ctx.app and ctx.app.message_history) then return end
+        local PB = require("core.prompt_builder")
+        local system_prompt = PB.PromptBuilder.build_system_prompt()
+        if ctx.app.plugin_system then
+            system_prompt = ctx.app.plugin_system:call_hooks_with_return("before_system_prompt", system_prompt)
+        end
+        local messages = ctx.app.message_history:get_messages()
+        if #messages > 0 and messages[1].role == "system" then
+            messages[1].content = system_prompt
+            log.warn("[memory] System prompt refreshed (memory files + autoload)")
+        end
+    end
+
+    -- Refresh prompt after compaction so memory files listing stays current
+    ctx:register_hook("after_compaction", _rebuild_system_prompt)
+
     -- Register /memory command (alias /m)
     ctx:register_command("memory", function(args)
         local parts = {}
@@ -173,19 +191,7 @@ function M:create_plugin(ctx)
             end
 
             log.success("[memory] Memory initialized at " .. MEMORY_DIR)
-
-            -- Rebuild system prompt so memory section is visible immediately
-            if ctx.app and ctx.app.message_history then
-                local PB = require("core.prompt_builder")
-                local system_prompt = PB.PromptBuilder.build_system_prompt()
-                if ctx.app.plugin_system then
-                    system_prompt = ctx.app.plugin_system:call_hooks_with_return("before_system_prompt", system_prompt)
-                end
-                local messages = ctx.app.message_history:get_messages()
-                if #messages > 0 and messages[1].role == "system" then
-                    messages[1].content = system_prompt
-                end
-            end
+            _rebuild_system_prompt()
 
         elseif subcmd == "rm-all" then
             local f = io.open(MEMORY_DIR .. "/.", "r")
@@ -253,17 +259,24 @@ function M:create_plugin(ctx)
                 table.insert(lines, "  " .. c.cyan .. "index.md" .. c.reset .. " (not found)")
             end
 
-            -- Count additional .md files
-            local extra = 0
+            -- Detail additional .md files
             local handle = io.popen(
-                "ls " .. MEMORY_DIR .. "/*.md 2>/dev/null | grep -v 'autoload.md$' | grep -v 'index.md$' | wc -l"
+                "ls " .. MEMORY_DIR .. "/*.md 2>/dev/null | grep -v 'autoload.md$' | grep -v 'index.md$'"
             )
             if handle then
-                extra = tonumber(handle:read("*all")) or 0
+                for fname in handle:lines() do
+                    local fname_short = fname:match("/([^/]+)$")
+                    local f = io.open(fname, "r")
+                    if f then
+                        local content = f:read("*all")
+                        f:close()
+                        table.insert(lines, "  " .. c.cyan .. fname_short .. c.reset ..
+                            " (" .. #content .. " bytes)")
+                    else
+                        table.insert(lines, "  " .. c.cyan .. fname_short .. c.reset .. " (unreadable)")
+                    end
+                end
                 handle:close()
-            end
-            if extra > 0 then
-                table.insert(lines, "  + " .. extra .. " additional file(s)")
             end
 
             print(table.concat(lines, "\n"))

@@ -398,7 +398,7 @@ function M.max_tokens()
     if max_tokens then
         return tonumber(max_tokens)
     end
-    return nil
+    return 4096
 end
 
 function M.stop()

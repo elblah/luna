@@ -11,11 +11,17 @@ local file_utils = require("utils.file_utils")
 -- Provider selection based on API_FORMAT or endpoint detection
 local function select_api_client()
     local format = os.getenv("API_FORMAT") or ""
+    local provider = os.getenv("API_PROVIDER") or ""
     local endpoint = os.getenv("API_ENDPOINT") or ""
     
     if format == "openai" or format == "pollinations" then
         return require("core.openai_client")
     elseif format == "anthropic" then
+        return require("core.anthropic_client")
+    end
+    
+    -- Check API_PROVIDER (same as Python version)
+    if provider:lower() == "anthropic" then
         return require("core.anthropic_client")
     end
     

@@ -2,6 +2,14 @@
 
 Pure Lua implementation of aicoder using LuaJIT + FFI.
 
+## Quick Install
+
+```bash
+curl -fsSL https://github.com/elblah/luna/raw/main/install.sh | bash
+```
+
+Installs luajit, opt deps, adds `luna` alias to shell rc.
+
 ## Dependencies
 
 ### Required

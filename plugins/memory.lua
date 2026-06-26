@@ -2,7 +2,7 @@
 -- Auto-managed persistent memory for cross-session learning.
 --
 -- Creates .aicoder/memory/ structure:
---   autoload.md - auto-injected into system prompt (max 2KB)
+--   autoload.md - auto-injected into system prompt (limit configurable via LUNA_MEMORY_AUTOLOAD_LIMIT env var)
 --   index.md - main memory file, AI manages freely
 --   *.md - any additional files AI creates
 --
@@ -15,7 +15,7 @@ local log = require("utils.log")
 local MEMORY_DIR = ".aicoder/memory"
 local AUTOLOAD_FILE = MEMORY_DIR .. "/autoload.md"
 local INDEX_FILE = MEMORY_DIR .. "/index.md"
-local MAX_AUTOLOAD_BYTES = 2048
+local MAX_AUTOLOAD_BYTES = tonumber(os.getenv("LUNA_MEMORY_AUTOLOAD_LIMIT")) or 2048
 local AUTOLOAD_DISABLED = AUTOLOAD_FILE .. ".disabled"
 
 local _pending_check = {}  -- autoload.md paths to check after tool results
@@ -104,7 +104,7 @@ function M:create_plugin(ctx)
         section = section .. "\nManage them with `write_file`/`edit_file`. Keep everything inside that directory."
         section = section .. "\n"
         section = section .. "\n**How it works:**"
-        section = section .. "\n- `autoload.md` (< 2KB) - loaded into **every session's prompt**. Put critical facts here."
+        section = section .. "\n- `autoload.md` (< " .. MAX_AUTOLOAD_BYTES .. " bytes) - loaded into **every session's prompt**. Put critical facts here."
         section = section .. "\n- `index.md` - main working memory (project knowledge, patterns, user preferences)."
         section = section .. "\n- Create additional `.md` files for specific topics."
 

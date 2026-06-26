@@ -382,7 +382,7 @@ function M.user_agent()
 end
 
 function M.streaming_enabled()
-    return os.getenv("AICODER_STREAM") ~= "0"
+    return os.getenv("AICODER_STREAM") == "1"
 end
 
 function M.temperature()

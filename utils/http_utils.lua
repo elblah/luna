@@ -43,6 +43,78 @@ function Response:ok()
 end
 
 -- Simple fetch using curl (non-streaming)
+-- Streaming fetch: reads SSE lines via curl -N, calls on_line(line) for each line
+-- Returns ok = true if curl started successfully, ok = false on error
+-- The on_line callback receives each line (including empty lines)
+function M.fetch_stream(request_url, options, on_line)
+    options = options or {}
+    local method = options.method or "GET"
+    local headers = options.headers or {}
+    local body = options.body or ""
+    local timeout = options.timeout or 300
+    
+    local curl_cmd = {"curl", "-sN", "--compressed", "-X", method, "-H", '"User-Agent: Mozilla/5.0"'}
+    
+    for k, v in pairs(headers) do
+        table.insert(curl_cmd, "-H")
+        table.insert(curl_cmd, '"' .. k .. ": " .. v .. '"')
+    end
+    
+    local tmp_file = nil
+    if method == "POST" and body ~= "" then
+        tmp_file = os.tmpname()
+        local f = io.open(tmp_file, "w")
+        if f then
+            f:write(body)
+            f:close()
+            table.insert(curl_cmd, "-d")
+            table.insert(curl_cmd, "@" .. tmp_file)
+        else
+            io.stderr:write("[http] ERROR: Cannot write temp file: " .. tostring(tmp_file) .. "\n")
+            tmp_file = nil
+        end
+    end
+    
+    table.insert(curl_cmd, "-m")
+    table.insert(curl_cmd, tostring(timeout))
+    table.insert(curl_cmd, request_url)
+    table.insert(curl_cmd, "2>/dev/null")
+    
+    local cmd_str = table.concat(curl_cmd, " ")
+    
+    if os.getenv("DEBUG") == "1" then
+        io.stderr:write("[http] stream: " .. cmd_str .. "\n")
+        if tmp_file then
+            local f = io.open(tmp_file, "r")
+            if f then
+                io.stderr:write("[http] Request body:\n" .. f:read("*a") .. "\n")
+                f:close()
+            end
+        end
+    end
+    
+    local handle = io.popen(cmd_str, "r")
+    if not handle then
+        if tmp_file then os.remove(tmp_file) end
+        return false, "Failed to execute curl"
+    end
+    
+    -- Read lines until EOF
+    while true do
+        local line = handle:read("*l")
+        if line == nil then break end
+        if on_line then
+            on_line(line)
+        end
+    end
+    
+    local exit_code = handle:close()
+    if tmp_file then os.remove(tmp_file) end
+    
+    -- Curl returns 0 on success, but with -N and broken pipe cases, ignore exit code
+    return true, nil
+end
+
 function M.fetch(request_url, options)
     options = options or {}
     local method = options.method or "GET"

@@ -132,6 +132,8 @@ function AICoder:initialize()
     
     -- Calculate tool definition tokens for context estimation
     self:_calculate_tool_tokens()
+    -- Re-estimate context now that _tools_tokens is set (init_system_prompt ran before tool calc)
+    self.message_history:estimate_context()
     
     -- Transfer plugin completers to input_handler
     local plugin_completers = self.plugin_system:get_completers()

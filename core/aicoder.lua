@@ -130,6 +130,9 @@ function AICoder:initialize()
     -- Build system prompt after plugins have registered their hooks
     self:initialize_system_prompt()
     
+    -- Calculate tool definition tokens for context estimation
+    self:_calculate_tool_tokens()
+    
     -- Transfer plugin completers to input_handler
     local plugin_completers = self.plugin_system:get_completers()
     for _, completer in ipairs(plugin_completers) do

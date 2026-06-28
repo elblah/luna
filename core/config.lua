@@ -52,6 +52,9 @@ M._reasoning_formats = {
         effort_field = "reasoning_effort",
         uses_extra_body = true,
     },
+    anthropic = {
+        uses_extra_body = true,
+    },
 }
 
 -- Model name patterns for auto-detection
@@ -60,6 +63,7 @@ M._reasoning_format_patterns = {
     deepseek = {"deepseek"},
     glm = {"glm", "zhipuai", "z.ai"},
     openrouter = {"openrouter"},
+    anthropic = {"claude", "anthropic"},
 }
 
 function M.get_reasoning_format()
@@ -86,7 +90,8 @@ end
 function M.get_effort_field()
     local fmt = M.get_reasoning_format()
     if fmt and M._reasoning_formats[fmt] then
-        return M._reasoning_formats[fmt].effort_field
+        local field = M._reasoning_formats[fmt].effort_field
+        if field then return field end
     end
     return "reasoning_effort"  -- default
 end
@@ -550,6 +555,11 @@ end
 
 -- Thinking extra body (for extra_body parameter)
 -- Returns nil if format doesn't use extra_body (e.g., OpenAI)
+function M.thinking_budget_tokens()
+    local val = os.getenv("THINKING_BUDGET_TOKENS")
+    return val and tonumber(val) or 16000
+end
+
 function M.thinking_extra_body()
     local fmt = M.get_reasoning_format()
     if fmt and M._reasoning_formats[fmt] then
@@ -564,7 +574,7 @@ function M.thinking_extra_body()
     elseif mode == "off" then
         return {thinking = {type = "disabled"}}
     elseif mode == "on" then
-        return {thinking = {type = "enabled"}}
+        return {thinking = {type = "enabled", budget_tokens = M.thinking_budget_tokens()}}
     end
     return nil
 end

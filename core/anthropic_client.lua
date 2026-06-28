@@ -348,6 +348,14 @@ function AnthropicClient:_add_optional_params(data)
             data[k] = v
         end
     end
+    
+    -- Add top-level thinking params (e.g., reasoning_effort for DeepSeek)
+    local thinking_params = config.thinking_params()
+    if thinking_params then
+        for k, v in pairs(thinking_params) do
+            data[k] = v
+        end
+    end
 end
 
 function AnthropicClient:_show_thinking()

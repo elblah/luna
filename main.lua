@@ -52,8 +52,13 @@ pcall(function()
     ffi.C.signal(3, SIG_IGN)
 end)
 
-local AICoder = require("core.aicoder")
 local datetime = require("utils.datetime_utils")
+
+-- Capture start time: prefer AICODER_START_TIME (set by shell for full-process timing),
+-- otherwise capture now via same monotonic clock used by datetime.get_time()
+local _start_time = tonumber(os.getenv("AICODER_START_TIME")) or datetime.get_time()
+
+local AICoder = require("core.aicoder")
 
 local function main()
     -- Create and run Luna
@@ -64,14 +69,8 @@ local function main()
         
         -- Calculate and display startup time (only in TTY mode)
         if stdin_utils.is_stdin_tty() then
-            local start_time_str = os.getenv("AICODER_START_TIME")
-            if start_time_str then
-                local start_time = tonumber(start_time_str)
-                if start_time then
-                    local startup_time = datetime.get_time() - start_time
-                    print(string.format("\027[96mTotal startup time: %.2f seconds\027[0m", startup_time))
-                end
-            end
+            local startup_time = datetime.get_time() - _start_time
+            print(string.format("\027[96mTotal startup time: %.2f seconds\027[0m", startup_time))
         end
         
         app:run()

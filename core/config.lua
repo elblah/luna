@@ -145,6 +145,21 @@ function M.set_detail_mode(enabled)
     M._detail_mode = enabled
 end
 
+-- Detail TTY - real-time output passthrough for shell commands
+M._detail_tty = (os.getenv("DETAIL_TTY") or "0") == "1"
+
+function M.detail_tty()
+    return M._detail_tty
+end
+
+function M.get_detail_tty()
+    return M._detail_tty
+end
+
+function M.set_detail_tty(enabled)
+    M._detail_tty = enabled
+end
+
 -- Thinking mode - initialize from env var ONCE at module load time
 local function init_thinking()
     local env_val = (os.getenv("THINKING") or ""):lower()

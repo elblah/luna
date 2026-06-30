@@ -3,6 +3,7 @@
 local M = {}
 
 local file_utils = require("utils.file_utils")
+local config = require("core.config")
 
 -- Get temp directory (uses per-instance isolated dir if available)
 local function get_tmp_dir()
@@ -38,7 +39,11 @@ function M.exec(command, timeout, cwd)
     if cwd then
         f:write("cd " .. cwd .. "\n")
     end
-    f:write(command .. "\n")
+    local exec_command = command
+    if config.detail_tty() then
+        exec_command = "(" .. command .. ") 2>&1 | tee /dev/tty 2>/dev/null; exit ${PIPESTATUS[0]}"
+    end
+    f:write(exec_command .. "\n")
     f:close()
 
     -- Execute with timeout: stdout -> out file, exit code -> ec file

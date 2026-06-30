@@ -10,6 +10,12 @@ local config = require("core.config")
 
 local DEFAULT_TIMEOUT = 600  -- 10 minutes
 
+-- Create a temp file path (mirrors exec_utils naming)
+local function tmpname()
+    local tmp_dir = "/tmp"
+    return tmp_dir .. "/luna-shell-" .. tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999))
+end
+
 function M.execute_shell(command, timeout, cwd)
     if not command or not command:match("%S") then
         return "Error: Command cannot be empty"
@@ -23,6 +29,26 @@ function M.execute_shell(command, timeout, cwd)
         cmd = string.format("cd %s && %s", string.format("%q", cwd), command)
     else
         cmd = command
+    end
+
+    if config.detail_tty() then
+        -- Use temp script to avoid shell quoting issues with $PIPESTATUS
+        local sh = tmpname() .. ".sh"
+        local f = io.open(sh, "w")
+        if not f then
+            return "Error: Failed to create temp file"
+        end
+        f:write("(" .. cmd .. ") 2>&1 | tee /dev/tty 2>/dev/null; exit ${PIPESTATUS[0]}\n")
+        f:close()
+        local handle = io.popen("timeout " .. timeout .. " bash " .. sh .. " 2>&1")
+        if not handle then
+            os.remove(sh)
+            return "Error: Failed to execute command"
+        end
+        local output = handle:read("*all")
+        handle:close()
+        os.remove(sh)
+        return output
     end
 
     local handle = io.popen("timeout " .. timeout .. " bash -c " .. string.format("%q", cmd) .. " 2>&1")

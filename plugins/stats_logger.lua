@@ -78,7 +78,11 @@ local function log_usage(usage)
     local pwd_h = io.popen("pwd")
     local cwd = pwd_h and pwd_h:read("*a"):gsub("%s+$", "") or ""
     if pwd_h then pwd_h:close() end
-    local base_url = os.getenv("API_ENDPOINT") or ""
+    local cfg = require("core.config")
+    local base_url = cfg.base_url()
+    if base_url == "" then
+        base_url = cfg.api_endpoint()
+    end
     -- Detect provider from URL
     local api_provider = os.getenv("API_PROVIDER")
     if not api_provider then

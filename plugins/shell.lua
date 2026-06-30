@@ -7,6 +7,7 @@ local M = {}
 
 local log = require("utils.log")
 local config = require("core.config")
+local exec = require("utils.exec_utils")
 
 local DEFAULT_TIMEOUT = 600  -- 10 minutes
 
@@ -38,7 +39,7 @@ function M.execute_shell(command, timeout, cwd)
         if not f then
             return "Error: Failed to create temp file"
         end
-        f:write("(" .. cmd .. ") 2>&1 | tee /dev/tty 2>/dev/null; exit ${PIPESTATUS[0]}\n")
+        f:write("(" .. cmd .. ") 2>&1 | tee " .. exec.resolve_tty() .. " 2>/dev/null; exit ${PIPESTATUS[0]}\n")
         f:close()
         local handle = io.popen("timeout " .. timeout .. " bash " .. sh .. " 2>&1")
         if not handle then

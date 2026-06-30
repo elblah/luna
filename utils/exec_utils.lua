@@ -5,6 +5,29 @@ local M = {}
 local file_utils = require("utils.file_utils")
 local config = require("core.config")
 
+-- Cached TTY path (detected at first use)
+local tty_path = nil
+
+-- Resolve actual TTY device path, caching result.
+-- On Android/Termux /dev/tty doesn't work; run `tty` command.
+-- Falls back to /dev/tty if detection fails.
+function M.resolve_tty()
+    if tty_path then
+        return tty_path
+    end
+    local handle = io.popen("tty 2>/dev/null")
+    if handle then
+        local result = handle:read("*a"):gsub("%s+$", "")
+        handle:close()
+        if result and result ~= "" and not result:match("not a tty") then
+            tty_path = result
+            return tty_path
+        end
+    end
+    tty_path = "/dev/tty"
+    return tty_path
+end
+
 -- Get temp directory (uses per-instance isolated dir if available)
 local function get_tmp_dir()
     local ok, config = pcall(require, "core.config")
@@ -45,7 +68,8 @@ function M.exec(command, timeout, cwd, opts)
     end
     local exec_command = command
     if use_tty then
-        exec_command = "(" .. command .. ") 2>&1 | tee /dev/tty 2>/dev/null; exit ${PIPESTATUS[0]}"
+        local tty = M.resolve_tty()
+        exec_command = "(" .. command .. ") 2>&1 | tee " .. tty .. " 2>/dev/null; exit ${PIPESTATUS[0]}"
     end
     f:write(exec_command .. "\n")
     f:close()

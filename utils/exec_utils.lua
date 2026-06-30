@@ -21,7 +21,7 @@ function M.tmpname()
     return tmp_dir .. "/luna-" .. tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999))
 end
 
-function M.exec(command, timeout, cwd)
+function M.exec(command, timeout, cwd, opts)
     timeout = tonumber(timeout) or 30
     local tmp = M.tmpname()
     local sh = tmp .. ".sh"
@@ -39,8 +39,12 @@ function M.exec(command, timeout, cwd)
     if cwd then
         f:write("cd " .. cwd .. "\n")
     end
+    local use_tty = config.detail_tty()
+    if opts and opts.tty ~= nil then
+        use_tty = opts.tty
+    end
     local exec_command = command
-    if config.detail_tty() then
+    if use_tty then
         exec_command = "(" .. command .. ") 2>&1 | tee /dev/tty 2>/dev/null; exit ${PIPESTATUS[0]}"
     end
     f:write(exec_command .. "\n")

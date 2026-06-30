@@ -53,7 +53,7 @@ local function write_to_central(line)
         "timeout -k 0.1s 0.2s nc -z -U %s 2>/dev/null && cat %s | nc -q 1 -U %s 2>/dev/null || echo '__STATS_FAIL__'",
         SOCKET_PATH, tmp_file, SOCKET_PATH
     )
-    local result = exec.exec(cmd, 5)
+    local result = exec.exec(cmd, 5, nil, {tty = false})
 
     -- Cleanup temp file
     os.remove(tmp_file)

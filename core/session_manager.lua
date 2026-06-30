@@ -46,7 +46,8 @@ function SessionManager:_append_to_output_file(content, tool_calls, response)
     else
         reasoning = response.thinking or response.reasoning_content or response.reasoning
     end
-    if reasoning and type(reasoning) == "string" and reasoning ~= "" then
+    if reasoning and reasoning ~= "" then
+        reasoning = tostring(reasoning)
         entry.reasoning = reasoning
     end
     
@@ -145,7 +146,8 @@ function SessionManager:_handle_api_response(response)
             else
                 reasoning = response.thinking or response.reasoning_content or response.reasoning
             end
-            if reasoning and type(reasoning) == "string" and reasoning ~= "" and show_reasoning then
+            if reasoning and reasoning ~= "" and show_reasoning then
+                reasoning = tostring(reasoning)
                 print()
                 print(config.colors.dim .. "Reasoning: " .. reasoning .. config.colors.reset)
             end
@@ -217,6 +219,7 @@ function SessionManager:_handle_api_response(response)
         local has_content = type(content) == "string" and content:gsub("%s+", "") ~= ""
         
         if reasoning and reasoning ~= "" and show_reasoning then
+            reasoning = tostring(reasoning)
             print()
             print(config.colors.dim .. "Reasoning: " .. reasoning .. config.colors.reset)
             if has_content then

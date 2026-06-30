@@ -3,14 +3,27 @@
 
 local M = {}
 
--- Check for socket availability at module load
-local socket = (function()
-    local ok, socket = pcall(require, "socket")
-    if ok and socket then
-        return socket
+-- High-precision wall clock via LuaJIT FFI (fast, no subprocess)
+-- clock_gettime(CLOCK_MONOTONIC, ...) for monotonic intervals
+-- Works on Linux, macOS, Termux, and any POSIX system with LuaJIT
+local _ffi = nil
+local _have_ffi_clock = false
+local _ts = nil
+local _CLOCK_MONOTONIC = 1
+
+-- Initialize FFI clock_gettime at module load
+pcall(function()
+    _ffi = require("ffi")
+    _ffi.cdef[[
+        struct timespec { long tv_sec; long tv_nsec; };
+        int clock_gettime(int clk_id, struct timespec *tp);
+    ]]
+    _ts = _ffi.new("struct timespec")
+    -- Verify it works
+    if _ffi.C.clock_gettime(_CLOCK_MONOTONIC, _ts) == 0 then
+        _have_ffi_clock = true
     end
-    return nil
-end)()
+end)
 
 function M.create_file_timestamp()
     local t = os.time()
@@ -39,9 +52,11 @@ function M.get_stats_timestamp()
 end
 
 -- Get wall time in seconds with nanosecond precision
+-- Priority: FFI clock_gettime (fast) > io.popen fallback (slow)
 function M.get_time()
-    if socket then
-        return socket.gettime()
+    if _have_ffi_clock then
+        _ffi.C.clock_gettime(_CLOCK_MONOTONIC, _ts)
+        return tonumber(_ts.tv_sec) + tonumber(_ts.tv_nsec) / 1e9
     end
     local f = io.popen('date +%s%N')
     local t = f:read("*all")

@@ -56,6 +56,7 @@ local datetime = require("utils.datetime_utils")
 
 -- Capture start time: prefer AICODER_START_TIME (set by shell for full-process timing),
 -- otherwise capture now via same monotonic clock used by datetime.get_time()
+local _start_set_by_shell = os.getenv("AICODER_START_TIME") ~= nil
 local _start_time = tonumber(os.getenv("AICODER_START_TIME")) or datetime.get_time()
 
 local AICoder = require("core.aicoder")
@@ -70,7 +71,8 @@ local function main()
         -- Calculate and display startup time (only in TTY mode)
         if stdin_utils.is_stdin_tty() then
             local startup_time = datetime.get_time() - _start_time
-            print(string.format("\027[96mTotal startup time: %.2f seconds\027[0m", startup_time))
+            local label = _start_set_by_shell and "total" or "app loading"
+            print(string.format("\027[96mStartup time (%s): %.2f seconds\027[0m", label, startup_time))
         end
         
         app:run()
